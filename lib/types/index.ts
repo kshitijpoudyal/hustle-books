@@ -1,0 +1,84 @@
+export interface Profile {
+  id: string
+  full_name: string | null
+  settings: {
+    mileage_method: 'actual' | 'irs'
+    currency: string
+    dark_mode: boolean
+    vehicle: {
+      year: number | null
+      make_model: string | null
+      purchase_price: number | null
+      salvage_value: number | null
+      expected_total_miles: number | null
+      current_odometer: number | null
+    }
+  }
+  created_at: string
+  updated_at: string
+}
+
+export interface RateSnapshot {
+  id: string
+  user_id: string
+  label: string | null
+  gas_price: number
+  mpg: number
+  irs_rate: number
+  tax_rate: number
+  depreciation_per_mile: number
+  effective_date: string // ISO date string YYYY-MM-DD
+  is_locked: boolean
+  notes: string | null
+  created_at: string
+  // Virtual field — populated by join or separate count query
+  linked_entry_count?: number
+}
+
+export interface Hustle {
+  id: string
+  user_id: string
+  name: string
+  color: string
+  icon: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface IncomeEntry {
+  id: string
+  user_id: string
+  hustle_id: string
+  amount: number
+  description: string | null
+  mileage: number | null
+  rate_snapshot_id: string | null
+  fuel_cost_at_log: number | null
+  depreciation_cost_at_log: number | null
+  is_taxable: boolean
+  date: string
+  created_at: string
+  updated_at: string
+  // Joined fields
+  hustle?: Hustle
+  rate_snapshot?: RateSnapshot
+}
+
+export interface ExpenseEntry {
+  id: string
+  user_id: string
+  hustle_id: string | null
+  amount: number
+  category: 'fuel' | 'fees' | 'supplies' | 'maintenance' | 'phone' | 'other'
+  description: string | null
+  is_recurring: boolean
+  date: string
+  created_at: string
+  updated_at: string
+  // Joined fields
+  hustle?: Hustle
+}
+
+export type TransactionEntry =
+  | (IncomeEntry & { entry_type: 'income' })
+  | (ExpenseEntry & { entry_type: 'expense' })

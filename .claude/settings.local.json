@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf .next)",
+      "Bash(npm install:*)",
+      "mcp__supabase__execute_sql",
+      "Bash(grep -r \"Public Sans\\\\|Work Sans\" /Users/a266352/kay/hustle-books --include=*.ts --include=*.tsx --include=*.css --include=*.md)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "mcp__supabase__apply_migration",
+      "Bash(git remote:*)",
+      "Bash(git push:*)",
+      "Bash(git config:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --env-filter ':*)"
+    ]
+  }
+}
