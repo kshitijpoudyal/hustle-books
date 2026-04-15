@@ -481,16 +481,13 @@ export default function HistoryPage() {
 
         {/* Sticky header */}
         <div
-          className="sticky top-0 z-20 px-8 pt-8 pb-4 flex items-center justify-between gap-6"
+          className="top-0 z-20 px-8 pt-8 pb-4 flex items-center justify-between gap-6"
           style={{
             background: 'rgba(251,249,243,0.88)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
           }}
         >
-          <h1 className="font-headline font-bold text-2xl text-[var(--primary)] whitespace-nowrap">
-            Transaction History
-          </h1>
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--on-surface-variant)] opacity-50" />
             <input
@@ -500,9 +497,6 @@ export default function HistoryPage() {
               className="w-full pl-10 pr-4 py-2 rounded-full bg-[var(--surface-container-high)] font-label text-[10px] uppercase tracking-[0.08rem] text-[var(--on-surface)] placeholder:text-[var(--on-surface-variant)] placeholder:opacity-50 focus:outline-none"
             />
           </div>
-          <button className="w-9 h-9 rounded-full bg-[var(--surface-container-low)] flex items-center justify-center text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)] transition-colors">
-            <Download className="w-4 h-4" strokeWidth={1.5} />
-          </button>
         </div>
 
         <div className="px-8 pb-16 space-y-5 max-w-5xl">

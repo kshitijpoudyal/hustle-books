@@ -70,64 +70,77 @@
 /* ── Light mode: The Synthetic Naturalist ──────────────────────────────────── */
 :root {
   /* Shadcn base tokens */
-  --background: #faf8f2;
-  --foreground: #1a1a18;
-  --card: #f5f2ea;
-  --card-foreground: #1a1a18;
-  --popover: #f5f2ea;
-  --popover-foreground: #1a1a18;
-  --primary: #1e3a5f;
+  --background: #fbf9f3;
+  --foreground: #1b1c19;
+  --card: #f5f3ee;
+  --card-foreground: #1b1c19;
+  --popover: #f5f3ee;
+  --popover-foreground: #1b1c19;
+  --primary: #022448;
   --primary-foreground: #ffffff;
-  --secondary: #2ca6a4;
+  --secondary: #006a68;
   --secondary-foreground: #ffffff;
-  --muted: #ede9de;
-  --muted-foreground: #6b6660;
-  --accent: #2ca6a4;
-  --accent-foreground: #ffffff;
-  --destructive: #c0392b;
-  --border: rgba(74, 70, 64, 0.12);
-  --input: #ede9de;
-  --ring: #1e3a5f;
+  --muted: #f0eee8;
+  --muted-foreground: #43474e;
+  --accent: #86f4f1;
+  --accent-foreground: #00706f;
+  --destructive: #ba1a1a;
+  --border: rgba(196, 198, 207, 0.15);
+  --input: #f5f3ee;
+  --ring: #022448;
   --radius: 1.25rem;
 
   /* Chart: navy/teal family */
-  --chart-1: #1e3a5f;
-  --chart-2: #2ca6a4;
-  --chart-3: #2e4e7a;
-  --chart-4: #3d8c8a;
-  --chart-5: #4a4640;
+  --chart-1: #022448;
+  --chart-2: #006a68;
+  --chart-3: #1e3a5f;
+  --chart-4: #86f4f1;
+  --chart-5: #43474e;
 
   /* Sidebar */
-  --sidebar: #f5f2ea;
-  --sidebar-foreground: #1a1a18;
-  --sidebar-primary: #1e3a5f;
+  --sidebar: #fbf9f3;
+  --sidebar-foreground: #1b1c19;
+  --sidebar-primary: #022448;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #2ca6a4;
+  --sidebar-accent: #006a68;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(74, 70, 64, 0.10);
-  --sidebar-ring: #1e3a5f;
+  --sidebar-border: rgba(196, 198, 207, 0.12);
+  --sidebar-ring: #022448;
 
   /* HustleBooks extended design tokens */
-  --primary-container: #2e4e7a;
+  --primary-container: #1e3a5f;
   --on-primary: #ffffff;
+  --on-primary-container: #8aa4cf;
 
-  --surface: #faf8f2;
-  --surface-dim: #f0ede4;
-  --surface-variant: #e8e4d8;
-  --on-surface: #1a1a18;
-  --on-surface-variant: #4a4640;
-  --outline-variant: rgba(74, 70, 64, 0.15);
+  --secondary-container: #86f4f1;
+  --on-secondary-container: #00706f;
 
-  --surface-container-lowest: #f5f2ea;
-  --surface-container-low: #ede9de;
-  --surface-container: #e5e1d5;
-  --surface-container-high: #dcd8cc;
-  --surface-container-highest: #d2cec1;
+  --tertiary: #341f00;
+  --tertiary-container: #503300;
+  --tertiary-fixed: #ffddb2;
+  --on-tertiary-container: #c69b5f;
 
-  --income: #2ca6a4;
-  --expense: #b85c3a;
+  --surface: #fbf9f3;
+  --surface-dim: #dcdad4;
+  --surface-variant: #e4e2dd;
+  --on-surface: #1b1c19;
+  --on-surface-variant: #43474e;
+  --outline: #74777f;
+  --outline-variant: #c4c6cf;
 
-  --shadow-navy: 0 12px 32px rgba(30, 58, 95, 0.06);
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f5f3ee;
+  --surface-container: #f0eee8;
+  --surface-container-high: #eae8e2;
+  --surface-container-highest: #e4e2dd;
+
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+
+  --income: #006a68;
+  --expense: #ba1a1a;
+
+  --shadow-navy: 0 12px 32px rgba(2, 36, 72, 0.06);
 }
 
 /* ── Dark mode: Journal by candlelight ─────────────────────────────────────── */
@@ -170,14 +183,24 @@
   --sidebar-ring: #7a9cc8;
 
   /* HustleBooks extended tokens */
-  --primary-container: #2e4e7a;
+  --primary-container: #1e3a5f;
   --on-primary: #0f1f33;
+  --on-primary-container: #adc8f5;
+
+  --secondary-container: #003736;
+  --on-secondary-container: #69d8d5;
+
+  --tertiary: #edbf7f;
+  --tertiary-container: #291800;
+  --tertiary-fixed: #3d2400;
+  --on-tertiary-container: #edbf7f;
 
   --surface: #1a1714;
   --surface-dim: #141210;
   --surface-variant: #2a2722;
   --on-surface: #f0ebe2;
   --on-surface-variant: #9c9690;
+  --outline: #8c8f97;
   --outline-variant: rgba(240, 235, 226, 0.12);
 
   --surface-container-lowest: #1f1c18;
@@ -186,8 +209,11 @@
   --surface-container-high: #332f26;
   --surface-container-highest: #3a362d;
 
-  --income: #3bbfbd;
-  --expense: #e07a5a;
+  --error: #ffb4ab;
+  --error-container: #93000a;
+
+  --income: #69d8d5;
+  --expense: #ffb4ab;
 
   --shadow-navy: 0 12px 32px rgba(0, 0, 0, 0.25);
 }
@@ -202,5 +228,25 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .squircle {
+    border-radius: 2rem;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(116, 119, 127, 0.25) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(116, 119, 127, 0.25);
+    border-radius: 9999px;
   }
 }

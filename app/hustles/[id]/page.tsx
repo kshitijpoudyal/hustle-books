@@ -617,7 +617,7 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
         </nav>
 
         {/* Main Content */}
-        <main className="ml-64 p-12 min-h-screen" style={{ backgroundColor: 'var(--surface)' }}>
+        <main className="p-12 min-h-screen" style={{ backgroundColor: 'var(--surface)' }}>
 
           {/* Header */}
           <header className="flex justify-between items-end mb-16">

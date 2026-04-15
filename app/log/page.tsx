@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Loader2, ArrowRight } from 'lucide-react'
+import { Loader2, ArrowRight, TriangleAlert } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { useHustles } from '@/lib/hooks/use-hustles'
 import { useIncome } from '@/lib/hooks/use-income'
 import { useExpenses } from '@/lib/hooks/use-expenses'
@@ -53,6 +54,27 @@ export default function LogPage() {
   const [expenseDesc, setExpenseDesc] = useState('')
   const [expenseRecurring, setExpenseRecurring] = useState(false)
   const [expenseDate, setExpenseDate] = useState(todayStr())
+  const [hasMileageOnDate, setHasMileageOnDate] = useState(false)
+
+  // Check if any income entry on the same date already has mileage tracked
+  useEffect(() => {
+    if (expenseCategory !== 'fuel' || !expenseDate) {
+      setHasMileageOnDate(false)
+      return
+    }
+    let cancelled = false
+    const supabase = createClient()
+    supabase
+      .from('income')
+      .select('id')
+      .eq('date', expenseDate)
+      .gt('mileage', 0)
+      .limit(1)
+      .then(({ data }) => {
+        if (!cancelled) setHasMileageOnDate((data?.length ?? 0) > 0)
+      })
+    return () => { cancelled = true }
+  }, [expenseCategory, expenseDate])
 
   const ratePreview = useMemo(() => {
     const miles = parseFloat(incomeMileage)
@@ -372,10 +394,21 @@ export default function LogPage() {
                   </select>
                   <span className="absolute right-0 text-[var(--on-surface-variant)]"><ChevronDown /></span>
                 </div>
-                {expenseCategory === 'fuel' && (
+                {expenseCategory === 'fuel' && !hasMileageOnDate && (
                   <p className="mt-3 font-label text-[9px] uppercase tracking-[0.05rem] text-[var(--on-surface-variant)] opacity-70 leading-relaxed">
-                    Log actual fill-up here. Mileage on income entries is for IRS records — won&apos;t double-count.
+                    Log actual fill-up here. Mileage on income entries is for IRS records only.
                   </p>
+                )}
+                {expenseCategory === 'fuel' && hasMileageOnDate && (
+                  <div
+                    className="flex items-start gap-2 mt-3 p-3 squircle"
+                    style={{ backgroundColor: 'var(--tertiary-fixed)' }}
+                  >
+                    <TriangleAlert className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--tertiary-container)' }} strokeWidth={1.5} />
+                    <p className="font-label text-[9px] uppercase tracking-[0.04rem] leading-relaxed" style={{ color: 'var(--tertiary-container)' }}>
+                      You already tracked mileage on this date. Logging a fuel expense too may duplicate your fuel cost — mileage is for IRS records, not profit.
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -461,7 +494,7 @@ export default function LogPage() {
           </div>
         </header>
 
-        <main className="ml-64 pt-24 pb-12 px-8 min-h-screen">
+        <main className="pt-8 pb-12 px-8 min-h-screen">
           <div className="max-w-3xl mx-auto flex flex-col gap-8">
 
             {/* Hero amount */}
@@ -543,10 +576,21 @@ export default function LogPage() {
                           <ChevronDown />
                         </span>
                       </div>
-                      {expenseCategory === 'fuel' && (
+                      {expenseCategory === 'fuel' && !hasMileageOnDate && (
                         <p className="font-label text-[9px] uppercase tracking-[0.05rem] text-[var(--on-surface-variant)] opacity-60">
                           Log actual fill-up here. Mileage on income entries is for IRS records only.
                         </p>
+                      )}
+                      {expenseCategory === 'fuel' && hasMileageOnDate && (
+                        <div
+                          className="flex items-start gap-2 p-3 squircle"
+                          style={{ backgroundColor: 'var(--tertiary-fixed)' }}
+                        >
+                          <TriangleAlert className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--tertiary-container)' }} strokeWidth={1.5} />
+                          <p className="font-label text-[9px] uppercase tracking-[0.04rem] leading-relaxed" style={{ color: 'var(--tertiary-container)' }}>
+                            You already tracked mileage on this date. Logging a fuel expense too may duplicate your fuel cost — mileage is for IRS records, not profit.
+                          </p>
+                        </div>
                       )}
                     </div>
                   )}

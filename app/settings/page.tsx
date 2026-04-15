@@ -430,22 +430,7 @@ export default function SettingsPage() {
 
       {/* ══════════════════ DESKTOP ══════════════════ */}
       <div className="hidden lg:block">
-
-        {/* Sticky header */}
-        <header className="fixed top-0 left-0 right-0 z-40 flex justify-between items-center h-20 pl-72 pr-8 bg-transparent">
-          <span className="font-headline text-sm font-bold text-[var(--primary)] uppercase tracking-tighter">
-            System Configuration
-          </span>
-        </header>
-
         <main className="ml-64 pt-24 pb-20 px-12 max-w-7xl">
-          <header className="mb-12">
-            <h2 className="text-5xl font-extrabold text-[var(--primary)] tracking-tighter">Settings</h2>
-            <p className="font-label text-xs text-[var(--on-surface-variant)] uppercase tracking-widest mt-2">
-              Personalize your archival experience
-            </p>
-          </header>
-
           <div className="grid grid-cols-12 gap-8">
 
             {/* Chapter I — Profile */}

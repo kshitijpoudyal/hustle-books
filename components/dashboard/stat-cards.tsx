@@ -1,3 +1,6 @@
+'use client'
+
+import { TrendingUp, TrendingDown, ArrowUp, ArrowDown, Clock, CreditCard, ReceiptText, Building2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils/formatters'
 
 interface StatCardsProps {
@@ -8,6 +11,23 @@ interface StatCardsProps {
   loading: boolean
 }
 
+function CardSkeleton() {
+  return (
+    <div className="bg-[var(--surface-container-low)] squircle p-5 lg:p-6 flex flex-col justify-between aspect-square lg:aspect-auto lg:h-44 animate-pulse">
+      <div className="hidden lg:flex justify-between items-start">
+        <div className="w-12 h-12 bg-[var(--surface-container-highest)] rounded-2xl" />
+        <div className="h-6 w-16 bg-[var(--surface-container-highest)] rounded-full" />
+      </div>
+      <div className="lg:hidden h-2.5 w-20 bg-[var(--surface-container-high)] rounded-full" />
+      <div>
+        <div className="hidden lg:block h-2.5 w-16 bg-[var(--surface-container-high)] rounded-full mb-2" />
+        <div className="h-8 w-28 bg-[var(--surface-container-high)] rounded-full" />
+        <div className="h-4 w-16 bg-[var(--surface-container)] rounded-full mt-2" />
+      </div>
+    </div>
+  )
+}
+
 export default function StatCards({
   totalIncome,
   totalExpenses,
@@ -15,76 +35,95 @@ export default function StatCards({
   taxSetAside,
   loading,
 }: StatCardsProps) {
-  const profitPositive = netProfit >= 0
-
   if (loading) {
     return (
-      <div className="squircle bg-[var(--surface-container-low)] p-6 lg:p-8 animate-pulse">
-        <div className="h-3 w-24 bg-[var(--surface-container-high)] rounded-full mb-5" />
-        <div className="h-14 w-52 bg-[var(--surface-container-high)] rounded-full mb-3" />
-        <div className="h-3 w-40 bg-[var(--surface-container)] rounded-full mb-7" />
-        <div className="flex gap-3">
-          <div className="h-10 w-36 bg-[var(--surface-container-low)] rounded-full" />
-          <div className="h-10 w-36 bg-[var(--surface-container-low)] rounded-full" />
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        {[1, 2, 3, 4].map(i => <CardSkeleton key={i} />)}
       </div>
     )
   }
 
+  const profitPositive = netProfit >= 0
+
+  const cards = [
+    {
+      label: 'Net Profit',
+      value: formatCurrency(Math.abs(netProfit)),
+      DesktopIcon: TrendingUp,
+      desktopBadge: { text: profitPositive ? '+MTH' : 'LOSS', className: profitPositive ? 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)]' : 'bg-[var(--error-container)] text-[var(--error)]' },
+      MobileTrendIcon: profitPositive ? TrendingUp : TrendingDown,
+      mobileTrendColor: profitPositive ? 'var(--secondary)' : 'var(--expense)',
+      mobileTrendText: profitPositive ? '+MTH' : 'LOSS',
+    },
+    {
+      label: 'Income',
+      value: formatCurrency(totalIncome),
+      DesktopIcon: TrendingUp,
+      desktopBadge: { text: 'All Time', className: 'bg-[var(--surface-container-high)] text-[var(--on-surface-variant)]' },
+      MobileTrendIcon: ArrowUp,
+      mobileTrendColor: 'var(--secondary)',
+      mobileTrendText: '8.4%',
+    },
+    {
+      label: 'Expenses',
+      value: formatCurrency(totalExpenses),
+      DesktopIcon: ReceiptText,
+      desktopBadge: { text: 'All Time', className: 'bg-[var(--error-container)] text-[var(--error)]' },
+      MobileTrendIcon: ArrowDown,
+      mobileTrendColor: 'var(--expense)',
+      mobileTrendText: '2.1%',
+    },
+    {
+      label: 'Estimated Taxes',
+      value: formatCurrency(taxSetAside),
+      DesktopIcon: Building2,
+      desktopBadge: { text: 'Reserve', className: 'bg-[var(--tertiary-fixed)] text-[var(--tertiary-container)]' },
+      MobileTrendIcon: Clock,
+      mobileTrendColor: 'var(--on-surface-variant)',
+      mobileTrendText: 'Set Aside',
+    },
+  ]
+
   return (
-    <div className="squircle bg-[var(--surface-container-low)] p-6 lg:p-8">
-      {/* Label */}
-      <p className="font-label text-[10px] uppercase tracking-[0.08rem] text-[var(--on-surface-variant)] mb-3">
-        Net Profit — This Month
-      </p>
-
-      {/* Hero number */}
-      <p
-        className="font-headline text-5xl lg:text-6xl font-black tracking-tighter leading-none"
-        style={{ color: profitPositive ? 'var(--income)' : 'var(--expense)' }}
-      >
-        {profitPositive ? '' : '−'}{formatCurrency(Math.abs(netProfit))}
-      </p>
-
-      {/* Sub-label */}
-      <p className="font-label text-[10px] uppercase tracking-[0.05rem] text-[var(--on-surface-variant)] mt-3 opacity-70">
-        {taxSetAside > 0
-          ? `After ${formatCurrency(taxSetAside, 'USD', true)} tax set-aside`
-          : profitPositive ? 'After expenses & tax' : 'Running at a loss'}
-      </p>
-
-      {/* Income / Expense pills */}
-      <div className="flex gap-3 mt-6 flex-wrap">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+      {cards.map(({ label, value, DesktopIcon, desktopBadge, MobileTrendIcon, mobileTrendColor, mobileTrendText }) => (
         <div
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full"
-          style={{ backgroundColor: 'rgba(0, 106, 104, 0.08)' }}
+          key={label}
+          className="bg-[var(--surface-container-low)] squircle p-5 lg:p-6 flex flex-col justify-between aspect-square lg:aspect-auto lg:h-44 hover:shadow-xl transition-all group"
+          style={{ boxShadow: '0 0 0 0 transparent' }}
+          onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 20px 40px rgba(2, 36, 72, 0.05)')}
+          onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 0 0 0 transparent')}
         >
-          <span
-            className="font-label text-[10px] uppercase tracking-[0.06rem] font-semibold"
-            style={{ color: 'var(--income)' }}
-          >
-            ↑ {formatCurrency(totalIncome, 'USD', true)}
-          </span>
-          <span className="font-label text-[9px] uppercase tracking-wider text-[var(--on-surface-variant)] opacity-50">
-            in
-          </span>
-        </div>
+          {/* Desktop: icon badge + % badge */}
+          <div className="hidden lg:flex justify-between items-start">
+            <div className="p-3 bg-[var(--surface-container-highest)] rounded-2xl group-hover:scale-110 transition-transform">
+              <DesktopIcon className="w-5 h-5 text-[var(--primary)]" strokeWidth={1.5} />
+            </div>
+            <span className={`font-label text-[10px] uppercase tracking-widest px-3 py-1 rounded-full ${desktopBadge.className}`}>
+              {desktopBadge.text}
+            </span>
+          </div>
 
-        <div
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full"
-          style={{ backgroundColor: 'rgba(186, 26, 26, 0.07)' }}
-        >
-          <span
-            className="font-label text-[10px] uppercase tracking-[0.06rem] font-semibold"
-            style={{ color: 'var(--expense)' }}
-          >
-            ↓ {formatCurrency(totalExpenses, 'USD', true)}
+          {/* Mobile: label at top */}
+          <span className="lg:hidden font-label text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)]">
+            {label}
           </span>
-          <span className="font-label text-[9px] uppercase tracking-wider text-[var(--on-surface-variant)] opacity-50">
-            out
-          </span>
+
+          {/* Bottom: label (desktop) + amount + trend */}
+          <div>
+            <p className="hidden lg:block font-label text-[11px] uppercase tracking-widest text-[var(--on-surface-variant)] mb-1">
+              {label}
+            </p>
+            <div className="text-2xl lg:text-3xl font-black text-[var(--primary)] leading-none">
+              {value}
+            </div>
+            <div className="flex items-center gap-1 mt-1" style={{ color: mobileTrendColor }}>
+              <MobileTrendIcon className="w-3.5 h-3.5 lg:w-4 lg:h-4" strokeWidth={2} />
+              <span className="font-label text-[10px] font-bold">{mobileTrendText}</span>
+            </div>
+          </div>
         </div>
-      </div>
+      ))}
     </div>
   )
 }
