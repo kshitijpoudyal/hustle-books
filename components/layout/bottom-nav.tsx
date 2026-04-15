@@ -10,6 +10,9 @@ import {
   Settings,
   LogOut,
   PlusCircle,
+  Search,
+  Bell,
+  CircleUser,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useProfile } from '@/lib/hooks/use-profile'
@@ -158,10 +161,34 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-headline text-sm font-bold text-[var(--primary)] truncate">{displayName}</p>
+            <span className="font-label text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)]">
+              Pro Account
+            </span>
           </div>
         </div>
       </div>
     </aside>
+  )
+}
+
+/* ── Desktop top header bar ───────────────────────────────────────────────── */
+function DesktopTopBar() {
+  const pathname = usePathname()
+  const pageTitle = NAV_ITEMS.find(
+    ({ href }) => pathname === href || (href !== '/' && pathname.startsWith(`${href}/`))
+  )?.label ?? 'Overview'
+
+  return (
+    <header
+      className="hidden lg:flex justify-between items-center h-20 fixed top-0 z-40 px-8"
+      style={{ left: '16rem', right: 0 }}
+    >
+      <div className="flex items-center gap-x-2">
+        <h2 className="font-headline font-black text-xl tracking-tight text-[var(--primary)]">
+          {pageTitle}
+        </h2>
+      </div>
+    </header>
   )
 }
 
@@ -171,6 +198,7 @@ export default function BottomNav() {
     <>
       <MobileNav pathname={pathname} />
       <DesktopSidebar pathname={pathname} />
+      <DesktopTopBar />
     </>
   )
 }

@@ -392,30 +392,8 @@ export default function HustlesPage() {
 
       {/* ══════════════════ DESKTOP ══════════════════ */}
       <div className="hidden lg:block">
-
-        {/* Sticky header */}
-        <header className="flex justify-between items-center h-20 w-full fixed top-0 pl-72 pr-8 z-40 bg-transparent">
-          <div className="flex flex-col">
-            <span className="font-label text-xs uppercase tracking-[0.1rem] text-[var(--on-primary-fixed-variant)]">
-              Active Portfolios
-            </span>
-            <h2 className="text-3xl font-extrabold text-[var(--primary)] tracking-tight">Hustles</h2>
-          </div>
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => setShowForm(v => !v)}
-              className="px-5 py-2.5 rounded-full font-label text-[10px] uppercase tracking-widest font-bold text-white flex items-center gap-2 shadow-[0_8px_24px_rgba(2,36,72,0.2)] hover:opacity-90 transition-opacity"
-              style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
-            >
-              <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-              Add Hustle
-            </button>
-          </div>
-        </header>
-
-        <main className="ml-64 pt-28 pb-12 px-12 min-h-screen">
+        <main className="pt-8 pb-12 px-12 min-h-screen">
           <div className="max-w-6xl mx-auto space-y-10">
-
             {/* Stats banner */}
             {!profitsLoading && hustles.length > 0 && (
               <section className="grid grid-cols-12 gap-6">
