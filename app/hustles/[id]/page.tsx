@@ -376,40 +376,42 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
           </section>
 
           {/* Stats Cards */}
-          <section className="grid grid-cols-1 gap-6 mb-12">
+          <section className="grid grid-cols-2 gap-3 mb-12">
             <StatCard
-              label="Monthly Income"
-              value={formatCurrency(stats.monthIncome)}
-              sub="Gross Revenue"
-              height="h-48"
-              className="p-8"
+              label="Net Profit"
+              value={formatCurrency(allTimeNetProfit)}
+              valueColor="var(--secondary)"
+              mobileAspectSquare
+              height="h-40"
             />
-
             <StatCard
-              label="Monthly Expenses"
-              value={`−${formatCurrency(stats.monthExpenses)}`}
-              sub="Operating Costs"
+              label="Total Income"
+              value={formatCurrency(stats.allTimeIncome)}
+              mobileAspectSquare
+              height="h-40"
+            />
+            <StatCard
+              label="Total Expenses"
+              value={formatCurrency(stats.allTimeExpenses)}
               valueColor="var(--expense)"
-              height="h-48"
-              className="p-8"
+              mobileAspectSquare
+              height="h-40"
             />
-
-            <div
-              className="squircle p-8 flex flex-col justify-between h-48"
-              style={{ backgroundColor: 'rgba(0,106,104,0.05)', border: '1px solid rgba(0,106,104,0.05)' }}
-            >
-              <div className="flex justify-between items-start">
-                <span className="font-label text-xs uppercase tracking-[0.1rem] text-[var(--secondary)] font-bold">Tax Set-aside</span>
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style={{ color: 'var(--secondary)' }}>
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" />
-                  <polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" strokeWidth="1.5" />
-                </svg>
-              </div>
-              <div>
-                <span className="text-4xl font-black text-[var(--secondary)] tracking-tighter">{formatCurrency(taxSetAside)}</span>
-                <p className="font-label text-xs mt-2 uppercase" style={{ color: 'rgba(0,106,104,0.6)' }}>25% Estimated Tax</p>
-              </div>
-            </div>
+            <StatCard
+              label="Est. Taxes"
+              value={formatCurrency(allTimeTax)}
+              mobileAspectSquare
+              height="h-40"
+            />
+            {stats.totalMileage > 0 && (
+              <StatCard
+                label="Depreciation"
+                value={formatCurrency(stats.totalDepreciation)}
+                sub={`${formatMileage(stats.totalMileage)} mi`}
+                wide
+                height="h-36"
+              />
+            )}
           </section>
 
           <div className="grid grid-cols-1 gap-12">

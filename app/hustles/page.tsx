@@ -324,7 +324,6 @@ export default function HustlesPage() {
 
         <main className="px-6 pt-4 max-w-5xl mx-auto">
           <header className="mb-10">
-            <p className="font-label uppercase tracking-[0.1rem] text-xs text-[var(--secondary)] mb-2">Portfolio Overview</p>
             <h2 className="text-4xl font-black text-[var(--primary)] tracking-tight">Your Hustles</h2>
           </header>
 
