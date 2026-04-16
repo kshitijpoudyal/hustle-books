@@ -1,19 +1,22 @@
 'use client'
 
-import { TrendingUp, TrendingDown, ArrowUp, ArrowDown, Clock, CreditCard, ReceiptText, Building2 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils/formatters'
+import { TrendingUp, TrendingDown, ArrowUp, ArrowDown, Clock, ReceiptText, Building2, Route } from 'lucide-react'
+import { formatCurrency, formatMileage } from '@/lib/utils/formatters'
 
 interface StatCardsProps {
   totalIncome: number
   totalExpenses: number
   netProfit: number
   taxSetAside: number
+  totalMileage: number
+  totalDepreciation: number
   loading: boolean
+  periodLabel: string
 }
 
-function CardSkeleton() {
+function CardSkeleton({ wide }: { wide?: boolean }) {
   return (
-    <div className="bg-[var(--surface-container-low)] squircle p-5 lg:p-6 flex flex-col justify-between aspect-square lg:aspect-auto lg:h-44 animate-pulse">
+    <div className={`bg-[var(--surface-container-low)] squircle p-5 lg:p-6 flex flex-col justify-between aspect-square lg:aspect-auto lg:h-44 animate-pulse${wide ? ' col-span-2 lg:col-span-1' : ''}`}>
       <div className="hidden lg:flex justify-between items-start">
         <div className="w-12 h-12 bg-[var(--surface-container-highest)] rounded-2xl" />
         <div className="h-6 w-16 bg-[var(--surface-container-highest)] rounded-full" />
@@ -33,12 +36,16 @@ export default function StatCards({
   totalExpenses,
   netProfit,
   taxSetAside,
+  totalMileage,
+  totalDepreciation,
   loading,
+  periodLabel,
 }: StatCardsProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
         {[1, 2, 3, 4].map(i => <CardSkeleton key={i} />)}
+        <CardSkeleton wide />
       </div>
     )
   }
@@ -50,28 +57,31 @@ export default function StatCards({
       label: 'Net Profit',
       value: formatCurrency(Math.abs(netProfit)),
       DesktopIcon: TrendingUp,
-      desktopBadge: { text: profitPositive ? '+MTH' : 'LOSS', className: profitPositive ? 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)]' : 'bg-[var(--error-container)] text-[var(--error)]' },
+      desktopBadge: {
+        text: profitPositive ? periodLabel : 'LOSS',
+        className: profitPositive ? 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)]' : 'bg-[var(--error-container)] text-[var(--error)]',
+      },
       MobileTrendIcon: profitPositive ? TrendingUp : TrendingDown,
       mobileTrendColor: profitPositive ? 'var(--secondary)' : 'var(--expense)',
-      mobileTrendText: profitPositive ? '+MTH' : 'LOSS',
+      mobileTrendText: profitPositive ? periodLabel : 'LOSS',
     },
     {
       label: 'Income',
       value: formatCurrency(totalIncome),
       DesktopIcon: TrendingUp,
-      desktopBadge: { text: 'All Time', className: 'bg-[var(--surface-container-high)] text-[var(--on-surface-variant)]' },
+      desktopBadge: { text: periodLabel, className: 'bg-[var(--surface-container-high)] text-[var(--on-surface-variant)]' },
       MobileTrendIcon: ArrowUp,
       mobileTrendColor: 'var(--secondary)',
-      mobileTrendText: '8.4%',
+      mobileTrendText: periodLabel,
     },
     {
       label: 'Expenses',
       value: formatCurrency(totalExpenses),
       DesktopIcon: ReceiptText,
-      desktopBadge: { text: 'All Time', className: 'bg-[var(--error-container)] text-[var(--error)]' },
+      desktopBadge: { text: periodLabel, className: 'bg-[var(--error-container)] text-[var(--error)]' },
       MobileTrendIcon: ArrowDown,
       mobileTrendColor: 'var(--expense)',
-      mobileTrendText: '2.1%',
+      mobileTrendText: periodLabel,
     },
     {
       label: 'Estimated Taxes',
@@ -81,20 +91,31 @@ export default function StatCards({
       MobileTrendIcon: Clock,
       mobileTrendColor: 'var(--on-surface-variant)',
       mobileTrendText: 'Set Aside',
+      wide: false,
+    },
+    {
+      label: 'Depreciation',
+      value: formatCurrency(totalDepreciation),
+      DesktopIcon: Route,
+      desktopBadge: { text: 'Vehicle', className: 'bg-[var(--surface-container-high)] text-[var(--on-surface-variant)]' },
+      MobileTrendIcon: Route,
+      mobileTrendColor: 'var(--on-surface-variant)',
+      mobileTrendText: `${formatMileage(totalMileage)}`,
+      wide: true,
     },
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-      {cards.map(({ label, value, DesktopIcon, desktopBadge, MobileTrendIcon, mobileTrendColor, mobileTrendText }) => (
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
+      {cards.map(({ label, value, DesktopIcon, desktopBadge, MobileTrendIcon, mobileTrendColor, mobileTrendText, wide }) => (
         <div
           key={label}
-          className="bg-[var(--surface-container-low)] squircle p-5 lg:p-6 flex flex-col justify-between aspect-square lg:aspect-auto lg:h-44 hover:shadow-xl transition-all group"
+          className={`bg-[var(--surface-container-low)] squircle p-5 lg:p-6 flex flex-col justify-between hover:shadow-xl transition-all group${wide ? ' col-span-2 lg:col-span-1 aspect-auto h-32 lg:h-44' : ' aspect-square lg:aspect-auto lg:h-44'}`}
           style={{ boxShadow: '0 0 0 0 transparent' }}
           onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 20px 40px rgba(2, 36, 72, 0.05)')}
           onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 0 0 0 transparent')}
         >
-          {/* Desktop: icon badge + % badge */}
+          {/* Desktop: icon + badge */}
           <div className="hidden lg:flex justify-between items-start">
             <div className="p-3 bg-[var(--surface-container-highest)] rounded-2xl group-hover:scale-110 transition-transform">
               <DesktopIcon className="w-5 h-5 text-[var(--primary)]" strokeWidth={1.5} />

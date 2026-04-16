@@ -21,7 +21,7 @@ export function useIncome(filters?: IncomeFilters) {
     const supabase = createClient()
     let query = supabase
       .from('income')
-      .select('*, hustle:hustles(id, name, color, icon)')
+      .select('*, hustle:hustles(id, name, color, icon, category)')
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
 
@@ -41,6 +41,7 @@ export function useIncome(filters?: IncomeFilters) {
     amount: number
     description?: string
     mileage?: number
+    cogs?: number
     date: string
     mileage_method: 'actual' | 'irs'
     is_taxable?: boolean
@@ -80,6 +81,7 @@ export function useIncome(filters?: IncomeFilters) {
       amount: data.amount,
       description: data.description ?? null,
       mileage: data.mileage ?? null,
+      cogs: data.cogs ?? null,
       date: data.date,
       rate_snapshot_id,
       fuel_cost_at_log,
@@ -97,6 +99,7 @@ export function useIncome(filters?: IncomeFilters) {
     amount: number
     description: string | null
     mileage: number | null
+    cogs: number | null
     date: string
     mileage_method: 'actual' | 'irs'
     is_taxable: boolean

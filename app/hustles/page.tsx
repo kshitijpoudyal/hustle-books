@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Plus, X, TrendingUp } from 'lucide-react'
+import { Plus, TrendingUp } from 'lucide-react'
 import { useHustles } from '@/lib/hooks/use-hustles'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils/formatters'
-import { HUSTLE_COLORS, HUSTLE_ICONS } from '@/lib/utils/constants'
+import { HUSTLE_COLORS, HUSTLE_ICONS, HUSTLE_CATEGORIES } from '@/lib/utils/constants'
+import type { HustleCategory } from '@/lib/utils/constants'
 import { toast } from 'sonner'
 import type { Hustle } from '@/lib/types'
 
@@ -47,10 +48,28 @@ function useAllTimeProfits(hustleIds: string[]): { profits: Record<string, Hustl
   return { profits, loading }
 }
 
+// ── Category select ───────────────────────────────────────────────────────────
+
+function CategorySelect({ value, onChange }: { value: HustleCategory | null; onChange: (v: HustleCategory | null) => void }) {
+  return (
+    <select
+      value={value ?? ''}
+      onChange={e => onChange((e.target.value as HustleCategory) || null)}
+      className="w-full bg-[var(--surface-container-high)] rounded-2xl py-3 px-4 focus:ring-2 focus:ring-[var(--primary)]/20 focus:outline-none font-label text-sm appearance-none"
+      style={{ color: value ? 'var(--primary)' : 'var(--on-surface-variant)', border: 'none' }}
+    >
+      <option value="">No category</option>
+      {HUSTLE_CATEGORIES.map(cat => (
+        <option key={cat.value} value={cat.value}>{cat.label}</option>
+      ))}
+    </select>
+  )
+}
+
 // ── Hustle form ───────────────────────────────────────────────────────────────
 
 interface HustleFormProps {
-  onSubmit: (data: { name: string; color: string; icon: string }) => Promise<void>
+  onSubmit: (data: { name: string; color: string; icon: string; category: HustleCategory | null }) => Promise<void>
   onCancel: () => void
   submitting: boolean
 }
@@ -59,13 +78,14 @@ function HustleForm({ onSubmit, onCancel, submitting }: HustleFormProps) {
   const [name, setName] = useState('')
   const [color, setColor] = useState<string>(HUSTLE_COLORS[0])
   const [icon, setIcon] = useState<string>(HUSTLE_ICONS[0])
+  const [category, setCategory] = useState<HustleCategory | null>(null)
   const [nameError, setNameError] = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) { setNameError('Name is required'); return }
     setNameError('')
-    await onSubmit({ name: name.trim(), color, icon })
+    await onSubmit({ name: name.trim(), color, icon, category })
   }
 
   return (
@@ -84,6 +104,13 @@ function HustleForm({ onSubmit, onCancel, submitting }: HustleFormProps) {
         {nameError && (
           <p className="text-xs mt-1.5" style={{ color: 'var(--expense)' }}>{nameError}</p>
         )}
+      </div>
+
+      <div>
+        <label className="font-label text-[10px] font-bold tracking-widest text-[var(--on-surface-variant)] uppercase mb-2 block">
+          Category
+        </label>
+        <CategorySelect value={category} onChange={setCategory} />
       </div>
 
       <div>
@@ -212,7 +239,7 @@ function DesktopHustleCard({ hustle, income }: { hustle: Hustle; income: number 
         </div>
         <h3 className="text-xl font-extrabold text-[var(--primary)] mb-1 truncate">{hustle.name}</h3>
         <p className="text-[var(--on-surface-variant)] text-sm mb-6 font-label uppercase tracking-widest truncate">
-          {hustle.icon}
+          {hustle.category ? (HUSTLE_CATEGORIES.find(c => c.value === hustle.category)?.label ?? hustle.icon) : hustle.icon}
         </p>
         <div className="mt-auto">
           <span className="font-label text-[10px] uppercase text-[var(--on-surface-variant)]">Total Earned</span>
@@ -275,7 +302,7 @@ export default function HustlesPage() {
   const topIncome = topHustle ? (profits[topHustle.id]?.income ?? 0) : 0
   const topPct = totalIncome > 0 ? Math.round((topIncome / totalIncome) * 100) : 0
 
-  async function handleCreate(data: { name: string; color: string; icon: string }) {
+  async function handleCreate(data: { name: string; color: string; icon: string; category: HustleCategory | null }) {
     setSubmitting(true)
     const ok = await createHustle(data)
     setSubmitting(false)
@@ -355,39 +382,6 @@ export default function HustlesPage() {
           )}
         </main>
 
-        {/* Mobile bottom sheet form */}
-        {showForm && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-[55] bg-[var(--primary)]/20 backdrop-blur-sm"
-              onClick={() => setShowForm(false)}
-            />
-            {/* Sheet */}
-            <div className="fixed inset-x-0 bottom-0 z-[60] p-4">
-              <div
-                className="squircle p-8 shadow-[0_-8px_32px_rgba(2,36,72,0.1)]"
-                style={{ background: 'rgba(228,226,221,0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-              >
-                <div className="w-12 h-1.5 bg-[var(--surface-variant)] rounded-full mx-auto mb-6" />
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-black text-[var(--primary)]">Initialize New Hustle</h2>
-                  <button
-                    onClick={() => setShowForm(false)}
-                    className="w-8 h-8 rounded-full bg-[var(--surface-container-high)] flex items-center justify-center text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-highest)] transition-colors"
-                  >
-                    <X className="w-4 h-4" strokeWidth={2} />
-                  </button>
-                </div>
-                <HustleForm
-                  onSubmit={handleCreate}
-                  onCancel={() => setShowForm(false)}
-                  submitting={submitting}
-                />
-              </div>
-            </div>
-          </>
-        )}
       </div>
 
       {/* ══════════════════ DESKTOP ══════════════════ */}
@@ -439,28 +433,6 @@ export default function HustlesPage() {
               </section>
             )}
 
-            {/* Add hustle form (desktop inline) */}
-            {showForm && (
-              <div className="squircle bg-[var(--surface-container-low)] p-8 relative">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-headline font-bold text-xl text-[var(--primary)]">Initialize New Hustle</h3>
-                  <button
-                    onClick={() => setShowForm(false)}
-                    className="w-8 h-8 rounded-full bg-[var(--surface-container-high)] flex items-center justify-center text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-highest)] transition-colors"
-                  >
-                    <X className="w-4 h-4" strokeWidth={2} />
-                  </button>
-                </div>
-                <div className="max-w-lg">
-                  <HustleForm
-                    onSubmit={handleCreate}
-                    onCancel={() => setShowForm(false)}
-                    submitting={submitting}
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Hustle grid */}
             {loading ? (
               <div className="grid grid-cols-4 gap-8">
@@ -490,90 +462,38 @@ export default function HustlesPage() {
               </section>
             )}
 
-            {/* Secondary section — Efficiency Report + Intelligence */}
-            {!loading && !profitsLoading && hustles.length > 0 && (
-              <section className="grid grid-cols-12 gap-8 mt-12">
-                {/* Efficiency Report */}
-                <div className="col-span-5 bg-[var(--surface-container-high)] squircle p-10">
-                  <div className="flex items-center gap-3 mb-8">
-                    <TrendingUp className="w-4 h-4 text-[var(--secondary)]" strokeWidth={2} />
-                    <h4 className="font-label text-xs uppercase tracking-[0.2rem] font-bold text-[var(--primary)]">
-                      Efficiency Report
-                    </h4>
-                  </div>
-                  <div className="space-y-6">
-                    {hustles.slice(0, 5).map(h => {
-                      const inc = profits[h.id]?.income ?? 0
-                      const pct = totalIncome > 0 ? (inc / totalIncome) * 100 : 0
-                      return (
-                        <div key={h.id} className="flex justify-between items-center gap-4">
-                          <span className="text-sm font-semibold text-[var(--primary)] min-w-0 truncate flex-1">
-                            {h.name}
-                          </span>
-                          <div className="h-2 w-32 bg-[var(--surface)] rounded-full overflow-hidden flex-shrink-0">
-                            <div
-                              className="h-full rounded-full transition-all duration-700"
-                              style={{ width: `${pct}%`, backgroundColor: h.color }}
-                            />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Hustle Intelligence */}
-                <div className="col-span-7 relative">
-                  <div
-                    className="absolute inset-0 rounded-[32px] -rotate-1 opacity-50"
-                    style={{ background: 'linear-gradient(to top right, var(--surface-container-highest), var(--surface))' }}
-                  />
-                  <div
-                    className="relative squircle p-10"
-                    style={{ backgroundColor: 'var(--surface-container-lowest)', border: '1px solid rgba(196,198,207,0.1)' }}
-                  >
-                    <h4 className="text-2xl font-black text-[var(--primary)] mb-6 tracking-tight">
-                      Hustle Intelligence
-                    </h4>
-                    {topHustle ? (
-                      <p className="text-[var(--on-surface-variant)] leading-relaxed mb-8">
-                        Your{' '}
-                        <span className="text-[var(--secondary)] font-bold">{topHustle.name}</span>{' '}
-                        portfolio is driving {topPct}% of total revenue at{' '}
-                        <span className="font-bold text-[var(--on-surface)]">
-                          {formatCurrency(topIncome)}
-                        </span>{' '}
-                        earned. Keep logging consistently to unlock deeper insights across all{' '}
-                        {hustles.length} active portfolio{hustles.length !== 1 ? 's' : ''}.
-                      </p>
-                    ) : (
-                      <p className="text-[var(--on-surface-variant)] leading-relaxed mb-8">
-                        Add income entries to your hustles and this panel will surface revenue patterns,
-                        top performers, and optimization opportunities.
-                      </p>
-                    )}
-                    <div className="flex gap-4">
-                      <Link
-                        href="/history"
-                        className="bg-[var(--surface-container-high)] px-6 py-3 rounded-full text-sm font-bold text-[var(--primary)] hover:opacity-80 transition-opacity"
-                      >
-                        View History
-                      </Link>
-                      <Link
-                        href="/log"
-                        className="text-[var(--secondary)] font-bold text-sm flex items-center gap-1 hover:gap-2 transition-all"
-                      >
-                        Log Entry →
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-
           </div>
         </main>
       </div>
+
+      {/* ── New Hustle Modal (shared mobile + desktop) ── */}
+      {showForm && (
+        <div
+          className="fixed inset-0 z-50 flex items-end lg:items-center justify-center"
+          style={{ backgroundColor: 'rgba(2,36,72,0.4)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowForm(false) }}
+        >
+          <div
+            className="squircle w-full max-w-lg mx-4 mb-4 lg:mb-0 p-8 space-y-2 max-h-[90vh] overflow-y-auto"
+            style={{ backgroundColor: 'var(--surface-container-lowest)' }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <p className="font-headline font-bold text-lg text-[var(--primary)]">New Hustle</p>
+              <button
+                onClick={() => setShowForm(false)}
+                className="font-label text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)] hover:opacity-70"
+              >
+                Cancel
+              </button>
+            </div>
+            <HustleForm
+              onSubmit={handleCreate}
+              onCancel={() => setShowForm(false)}
+              submitting={submitting}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -13,6 +13,7 @@ import {
   Search,
   Bell,
   CircleUser,
+  Receipt,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useProfile } from '@/lib/hooks/use-profile'
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: '/history',  label: 'History',   Icon: Clock },
   { href: '/log',      label: 'Log',       Icon: PenLine, primary: true },
   { href: '/hustles',  label: 'Hustles',   Icon: Rocket },
+  { href: '/tax',      label: 'Tax',       Icon: Receipt },
   { href: '/settings', label: 'Settings',  Icon: Settings },
 ]
 

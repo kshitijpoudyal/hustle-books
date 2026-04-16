@@ -46,6 +46,9 @@ export function useRates() {
 
   async function createSnapshot(data: Omit<RateSnapshot, 'id' | 'user_id' | 'created_at'>) {
     const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { toast.error('Not authenticated'); return false }
+
     // Upsert: if snapshot exists for this date, update it (unless locked)
     const existing = snapshots.find(s => s.effective_date === data.effective_date)
     if (existing) {
@@ -53,7 +56,7 @@ export function useRates() {
       const { error } = await supabase.from('rate_snapshots').update(data).eq('id', existing.id)
       if (error) { toast.error(error.message); return false }
     } else {
-      const { error } = await supabase.from('rate_snapshots').insert(data)
+      const { error } = await supabase.from('rate_snapshots').insert({ ...data, user_id: user.id })
       if (error) { toast.error(error.message); return false }
     }
     await load()

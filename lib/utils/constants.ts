@@ -1,3 +1,17 @@
+export const HUSTLE_CATEGORIES = [
+  { value: 'on_demand_services',    label: 'On-Demand Services' },
+  { value: 'passive_income',        label: 'Passive Income' },
+  { value: 'reselling_and_flipping',label: 'Reselling & Flipping' },
+  { value: 'ecommerce',             label: 'E-commerce' },
+  { value: 'content_creation',      label: 'Content Creation' },
+  { value: 'remote_microtasks',     label: 'Remote Microtasks' },
+  { value: 'local_services',        label: 'Local Services' },
+  { value: 'tutoring_and_coaching', label: 'Tutoring & Coaching' },
+  { value: 'digital_products',      label: 'Digital Products' },
+] as const
+
+export type HustleCategory = typeof HUSTLE_CATEGORIES[number]['value']
+
 export const EXPENSE_CATEGORIES = [
   { value: 'fuel', label: 'Fuel' },
   { value: 'fees', label: 'Fees' },
@@ -53,13 +67,13 @@ export const DEFAULT_RATE_SNAPSHOT = {
   label: 'Initial rates',
   gas_price: 3.5,
   mpg: 25.0,
-  irs_rate: 0.67,
+  irs_rate: 72.5,
   tax_rate: 25.0,
-  depreciation_per_mile: 0.0,
+  depreciation_per_mile: 0.35,
   is_locked: false,
   notes: 'Default rates — update in Settings. Set your depreciation rate too!',
 }
 
-export const IRS_MILEAGE_RATE_DEFAULT = 0.67
+export const IRS_MILEAGE_RATE_DEFAULT = 72.5
 
 export const STALE_RATES_THRESHOLD_DAYS = 30
