@@ -62,6 +62,7 @@ export default function EditEntryPage() {
   // Income fields
   const [incomeHustleId, setIncomeHustleId] = useState('')
   const [incomeAmount, setIncomeAmount] = useState('')
+  const [incomeCogs, setIncomeCogs] = useState('')
   const [incomeDesc, setIncomeDesc] = useState('')
   const [incomeMileage, setIncomeMileage] = useState('')
   const [incomeDate, setIncomeDate] = useState('')
@@ -91,6 +92,7 @@ export default function EditEntryPage() {
         setEntryType('income')
         setIncomeHustleId(entry.hustle_id)
         setIncomeAmount(String(entry.amount))
+        setIncomeCogs(entry.cogs != null ? String(entry.cogs) : '')
         setIncomeDesc(entry.description ?? '')
         setIncomeMileage(entry.mileage != null ? String(entry.mileage) : '')
         setIncomeDate(entry.date)
@@ -138,6 +140,11 @@ export default function EditEntryPage() {
   }, [entryType, incomeMileage, incomeDate, snapshots, ratesLoading])
 
   const activeHustles = hustles.filter(h => h.is_active)
+  const selectedHustle = useMemo(
+    () => hustles.find(h => h.id === incomeHustleId) ?? null,
+    [incomeHustleId, hustles]
+  )
+  const isReselling = selectedHustle?.category === 'reselling_and_flipping'
 
   async function handleIncomeSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -146,11 +153,13 @@ export default function EditEntryPage() {
     if (!amount || amount <= 0) { toast.error('Please enter a valid amount.'); return }
     setSubmitting(true)
     const miles = parseFloat(incomeMileage)
+    const cogs = isReselling ? (parseFloat(incomeCogs) || null) : null
     const ok = await updateIncome(id, {
       hustle_id: incomeHustleId,
       amount,
       description: incomeDesc.trim() || null,
       mileage: miles > 0 ? miles : null,
+      cogs,
       date: incomeDate,
       mileage_method: 'actual',
       is_taxable: incomeTaxable,
@@ -260,6 +269,42 @@ export default function EditEntryPage() {
                 />
               </div>
             </div>
+
+            {/* Item Cost — reselling only */}
+            {isReselling && (
+              <div className="bg-[var(--surface-container-low)] squircle p-5">
+                <label className={labelCls}>Item Cost (What you paid)</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-headline font-bold text-[var(--on-surface-variant)] opacity-50">$</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={incomeCogs}
+                    onChange={e => setIncomeCogs(e.target.value)}
+                    className={bareInput}
+                  />
+                </div>
+                {parseFloat(incomeCogs) > 0 && parseFloat(incomeAmount) > 0 && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60">Gross margin</span>
+                    <span
+                      className="px-2.5 py-0.5 rounded-full font-label text-[10px] font-bold"
+                      style={{
+                        backgroundColor: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                          ? 'rgba(0,106,104,0.1)' : 'rgba(180,60,40,0.1)',
+                        color: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                          ? 'var(--secondary)' : 'var(--expense)',
+                      }}
+                    >
+                      ${(parseFloat(incomeAmount) - parseFloat(incomeCogs)).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Date */}
             <div className="bg-[var(--surface-container-low)] squircle p-5">

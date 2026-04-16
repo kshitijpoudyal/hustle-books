@@ -42,6 +42,7 @@ export interface Hustle {
   color: string
   icon: string
   is_active: boolean
+  category: import('@/lib/utils/constants').HustleCategory | null
   created_at: string
 }
 
@@ -55,6 +56,7 @@ export interface IncomeEntry {
   rate_snapshot_id: string | null
   fuel_cost_at_log: number | null
   depreciation_cost_at_log: number | null
+  cogs: number | null
   is_taxable: boolean
   date: string
   created_at: string

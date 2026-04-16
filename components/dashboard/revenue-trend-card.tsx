@@ -2,17 +2,27 @@
 
 import { formatCurrency } from '@/lib/utils/formatters'
 import type { WeeklyBar } from '@/lib/hooks/use-dashboard'
+import type { Period } from '@/lib/hooks/use-dashboard'
+
+const CHART_SUBTITLES: Record<Period, string> = {
+  week: 'Daily revenue — this week',
+  month: 'Weekly revenue — this month',
+  year: 'Monthly revenue — this year',
+  all: 'Monthly revenue — last 12 months',
+}
 
 interface RevenueTrendCardProps {
   data: WeeklyBar[]
   loading: boolean
   variant?: 'mobile' | 'desktop'
+  period: Period
 }
 
 export default function RevenueTrendCard({
   data,
   loading,
   variant = 'mobile',
+  period,
 }: RevenueTrendCardProps) {
   const totalVolume = data.reduce((sum, b) => sum + b.income, 0)
   const maxIncome = Math.max(...data.map(b => b.income), 1)
@@ -38,7 +48,7 @@ export default function RevenueTrendCard({
           <div>
             <h2 className="font-headline text-xl font-bold text-[var(--primary)]">Revenue Trend</h2>
             <p className="font-label text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)]">
-              Revenue by month — last 6 months
+              {CHART_SUBTITLES[period]}
             </p>
           </div>
           <div className="flex items-center gap-x-2">
@@ -56,7 +66,7 @@ export default function RevenueTrendCard({
         <div className="flex-grow flex items-end gap-x-4 px-4 pb-8 relative">
           {data.map((bar, i) => {
             const pct = maxIncome > 0 ? Math.round((bar.income / maxIncome) * 100) : 10
-            const isHighest = bar.income === maxIncome
+            const isHighest = bar.income === maxIncome && bar.income > 0
             return (
               <div
                 key={i}
@@ -95,7 +105,7 @@ export default function RevenueTrendCard({
         <div>
           <h2 className="font-headline font-bold text-lg text-white">Revenue Trend</h2>
           <p className="font-label text-[10px] uppercase tracking-wider text-white/70">
-            Past 6 Months Activity
+            {CHART_SUBTITLES[period]}
           </p>
         </div>
         <div className="text-right">

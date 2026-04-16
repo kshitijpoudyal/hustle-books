@@ -2,10 +2,11 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Lock, Unlock, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react'
+import { Lock, Unlock, ChevronDown, ChevronUp, AlertTriangle, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRates } from '@/lib/hooks/use-rates'
 import type { RateSnapshotWithCount } from '@/lib/hooks/use-rates'
+import { createClient } from '@/lib/supabase/client'
 import {
   formatDate,
   formatGasPrice,
@@ -514,8 +515,61 @@ function RatesPageInner() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [pendingUnlock, setPendingUnlock] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [mileageEntryCount, setMileageEntryCount] = useState(0)
+  const [applying, setApplying] = useState(false)
 
   const formRef = useRef<HTMLDivElement>(null)
+
+  // Count all income entries with mileage
+  useEffect(() => {
+    if (loading) return
+    const supabase = createClient()
+    supabase
+      .from('income')
+      .select('id', { count: 'exact', head: true })
+      .gt('mileage', 0)
+      .then(({ count }) => setMileageEntryCount(count ?? 0))
+  }, [loading])
+
+  async function handleHistoricalApply(snapshotId: string, method: 'actual' | 'irs') {
+    const snap = snapshots.find(s => s.id === snapshotId)
+    if (!snap) return
+    setApplying(true)
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+      .from('income')
+      .select('id, mileage')
+      .gt('mileage', 0)
+
+    if (error || !data) {
+      toast.error(error?.message ?? 'Failed to fetch entries')
+      setApplying(false)
+      return
+    }
+
+    const updates = data.map(row => {
+      const miles = Number(row.mileage)
+      const fuelCost = method === 'irs'
+        ? miles * snap.irs_rate
+        : (miles / snap.mpg) * snap.gas_price
+      const deprCost = miles * snap.depreciation_per_mile
+      return supabase
+        .from('income')
+        .update({ fuel_cost_at_log: fuelCost, depreciation_cost_at_log: deprCost, rate_snapshot_id: snap.id })
+        .eq('id', row.id)
+    })
+
+    const results = await Promise.all(updates)
+    const failed = results.filter(r => r.error).length
+    setApplying(false)
+
+    if (failed > 0) {
+      toast.error(`${failed} entries failed to update`)
+    } else {
+      toast.success(`Updated ${data.length} ${data.length === 1 ? 'entry' : 'entries'}`)
+    }
+  }
 
   // Handle ?depr= query param from Settings depreciation calculator
   useEffect(() => {

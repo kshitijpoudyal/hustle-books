@@ -36,17 +36,6 @@ function Skeleton() {
   )
 }
 
-// ── Chapter header (desktop) ──────────────────────────────────────────────────
-function ChapterHeader({ label }: { label: string }) {
-  return (
-    <div className="px-6 py-2 mb-6" style={{ backgroundColor: 'var(--surface-dim)' }}>
-      <h3 className="text-2xl text-[var(--primary)]" style={{ fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>
-        {label}
-      </h3>
-    </div>
-  )
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const router = useRouter()
@@ -337,84 +326,6 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* Depreciation Calculator */}
-          <section className="grid grid-cols-1 md:grid-cols-12 gap-8">
-            <div className="md:col-span-4">
-              <h2 className="font-headline font-extrabold text-3xl tracking-tight text-[var(--primary)]">Depreciation</h2>
-              <p className="text-[var(--on-surface-variant)] mt-2 font-body text-sm">Calculate the true cost of every mile driven.</p>
-            </div>
-            <div className="md:col-span-8 flex flex-col md:flex-row gap-6">
-              <div className="flex-1 bg-[var(--surface-container-low)] rounded-[1rem] p-8 space-y-4">
-                <div className="space-y-1">
-                  <label className={labelCls}>Purchase Price</label>
-                  <input
-                    type="number"
-                    step="100"
-                    placeholder="28500"
-                    value={purchasePrice}
-                    onChange={e => setPurchasePrice(e.target.value)}
-                    className={roundInput}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className={labelCls}>Salvage Value</label>
-                  <input
-                    type="number"
-                    step="100"
-                    placeholder="4000"
-                    value={salvageValue}
-                    onChange={e => setSalvageValue(e.target.value)}
-                    className={roundInput}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className={labelCls}>Expected Miles</label>
-                  <input
-                    type="number"
-                    step="1000"
-                    placeholder="200000"
-                    value={expectedMiles}
-                    onChange={e => setExpectedMiles(e.target.value)}
-                    className={roundInput}
-                  />
-                </div>
-              </div>
-
-              {/* Result card */}
-              <div
-                className="w-full md:w-56 rounded-[2rem] p-8 flex flex-col justify-between items-center text-center shadow-[0_32px_64px_rgba(2,36,72,0.1)]"
-                style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
-              >
-                <span className="font-label uppercase tracking-widest text-[11px] text-white/60">Specimen Result</span>
-                <div>
-                  <span className="text-4xl font-black text-white block">
-                    {deprHasInput ? `$${deprResult.toFixed(3)}` : '$0.000'}
-                  </span>
-                  <span className="font-label uppercase tracking-widest text-[10px] text-white/80">Per Mile</span>
-                </div>
-                <div className="w-full">
-                  <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${Math.min(100, deprResult * 300)}%`,
-                        backgroundColor: 'var(--secondary-container)',
-                      }}
-                    />
-                  </div>
-                  {deprHasInput && (
-                    <button
-                      onClick={handleUseDeprRate}
-                      className="mt-4 w-full py-2 rounded-full font-label text-[9px] uppercase tracking-widest font-bold text-[var(--primary)] bg-white/90 hover:bg-white transition-colors"
-                    >
-                      Use this rate →
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
-
           {/* Sign Out */}
           <div className="flex justify-center pt-4">
             <button
@@ -430,12 +341,11 @@ export default function SettingsPage() {
 
       {/* ══════════════════ DESKTOP ══════════════════ */}
       <div className="hidden lg:block">
-        <main className="ml-64 pt-24 pb-20 px-12 max-w-7xl">
+        <main className="pt-24 pb-20 px-12 max-w-7xl">
           <div className="grid grid-cols-12 gap-8">
 
             {/* Chapter I — Profile */}
             <section className="col-span-12">
-              <ChapterHeader label="Chapter I. User Credentials" />
               <div className="bg-[var(--surface-container-low)] squircle p-8 flex flex-col md:flex-row gap-12 items-center">
                 {/* Avatar */}
                 <div className="w-32 h-32 rounded-full bg-[var(--surface-container-highest)] flex items-center justify-center flex-shrink-0">
@@ -467,7 +377,6 @@ export default function SettingsPage() {
 
             {/* Chapter II — Financial Ratios */}
             <section className="col-span-12 lg:col-span-5">
-              <ChapterHeader label="Chapter II. Financial Ratios" />
               {activeSnapshot ? (
                 <div
                   className="text-white squircle p-8 shadow-2xl"
@@ -534,7 +443,6 @@ export default function SettingsPage() {
 
             {/* Chapter III — Technical Inventory */}
             <section className="col-span-12 lg:col-span-7">
-              <ChapterHeader label="Chapter III. Technical Inventory" />
               <div className="bg-[var(--surface-container-low)] squircle p-8 h-[calc(100%-4rem)] flex flex-col justify-between">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -593,113 +501,6 @@ export default function SettingsPage() {
                 </div>
               </div>
             </section>
-
-            {/* Chapter IV — Depreciation Specimen */}
-            <section className="col-span-12">
-              <ChapterHeader label="Chapter IV. The Depreciation Specimen" />
-              <div className="relative overflow-hidden bg-[var(--surface-container-low)] squircle p-10 group">
-                {/* Glassmorphic overlay */}
-                <div
-                  className="absolute top-0 right-0 w-1/2 h-full -skew-x-12 translate-x-24 z-0"
-                  style={{ backgroundColor: 'rgba(228,226,221,0.4)', backdropFilter: 'blur(8px)', borderLeft: '1px solid rgba(255,255,255,0.2)' }}
-                />
-                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                  <div>
-                    <div
-                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-6"
-                      style={{ backgroundColor: 'var(--secondary)', color: 'white' }}
-                    >
-                      <span className="font-label text-[10px] uppercase tracking-widest font-semibold">Live Calculation</span>
-                    </div>
-                    <h4 className="text-3xl font-bold text-[var(--primary)] leading-tight mb-4">
-                      Precision Value Erosion Analyzer
-                    </h4>
-                    <p className="text-[var(--on-surface-variant)] leading-relaxed max-w-md mb-8">
-                      Calculate the exact per-mile cost of ownership. Use the result in{' '}
-                      <button onClick={() => router.push('/rates')} className="text-[var(--secondary)] font-semibold hover:underline">
-                        Rate Snapshots
-                      </button>{' '}
-                      to apply it to future income entries.
-                    </p>
-                    <div className="space-y-8">
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <label className={labelCls}>Expected Lifespan (Miles)</label>
-                          <span className="font-mono text-[var(--primary)] font-bold text-sm">
-                            {sliderMiles.toLocaleString()}
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min="10000"
-                          max="300000"
-                          step="5000"
-                          value={sliderMiles}
-                          onChange={e => setSliderMiles(parseInt(e.target.value))}
-                          className="w-full h-2 bg-[var(--surface-container-highest)] rounded-full appearance-none cursor-pointer accent-[var(--primary)]"
-                        />
-                      </div>
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <label className={labelCls}>Acquisition Cost ($)</label>
-                          <span className="font-mono text-[var(--primary)] font-bold text-sm">
-                            ${sliderPurchase.toLocaleString()}
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min="5000"
-                          max="150000"
-                          step="1000"
-                          value={sliderPurchase}
-                          onChange={e => setSliderPurchase(parseInt(e.target.value))}
-                          className="w-full h-2 bg-[var(--surface-container-highest)] rounded-full appearance-none cursor-pointer accent-[var(--primary)]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Specimen output card */}
-                  <div className="flex justify-center">
-                    <div
-                      className="w-72 h-96 bg-white squircle shadow-[0_32px_64px_-20px_rgba(2,36,72,0.1)] flex flex-col p-8 items-center text-center relative overflow-hidden"
-                      style={{ border: '1px solid rgba(196,198,207,0.15)' }}
-                    >
-                      <div
-                        className="absolute top-0 left-0 w-full h-1"
-                        style={{ background: 'linear-gradient(to right, var(--primary), var(--secondary))' }}
-                      />
-                      <span className="font-label text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-50 mb-8">
-                        Specimen ID: #HB-CALC
-                      </span>
-                      <div className="w-20 h-20 bg-[var(--surface-container-low)] rounded-full flex items-center justify-center mb-6">
-                        <TrendingDown className="w-8 h-8 text-[var(--primary)]" strokeWidth={1.5} />
-                      </div>
-                      <p className="text-[var(--primary-container)] text-lg font-headline font-semibold italic mb-2">
-                        Calculated Yield
-                      </p>
-                      <div className="my-2">
-                        <span className="text-5xl font-black text-[var(--primary)] tracking-tighter">
-                          {sliderDeprResult.toFixed(2)}
-                        </span>
-                        <p className="font-label text-[10px] uppercase tracking-[0.2rem] text-[var(--secondary)] mt-1">
-                          USD per Mile
-                        </p>
-                      </div>
-                      <div className="mt-auto w-full pt-4" style={{ borderTop: '1px solid var(--surface-container)' }}>
-                        <button
-                          onClick={() => router.push(`/rates?depr=${sliderDeprResult.toFixed(3)}`)}
-                          className="text-[10px] font-label uppercase tracking-widest text-[var(--secondary)] hover:underline"
-                        >
-                          Use this rate →
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
           </div>
 
           {/* Footer actions */}
@@ -718,7 +519,7 @@ export default function SettingsPage() {
               className="px-8 py-3 rounded-full text-white font-label text-xs uppercase tracking-widest shadow-xl hover:opacity-90 transition-opacity disabled:opacity-50"
               style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
             >
-              {savingAll ? 'Saving…' : 'Commit Changes'}
+              {savingAll ? 'Saving…' : 'Save Changes'}
             </button>
           </footer>
         </main>

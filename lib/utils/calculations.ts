@@ -48,13 +48,19 @@ export function calcDepreciationPerMile(
 }
 
 // Net profit — uses snapshot tax rate for the period
+// taxableIncome defaults to totalIncome when not provided (all income taxable)
+// totalDepreciation is the sum of depreciation_cost_at_log (vehicle wear, baked in at log time)
 export function calcNetProfit(
   totalIncome: number,
   totalExpenses: number,
-  taxRate: number // as percentage e.g. 25
+  taxRate: number, // as percentage e.g. 25
+  totalCogs: number = 0,
+  taxableIncome?: number,
+  totalDepreciation: number = 0
 ): number {
-  const taxSetAside = totalIncome * (taxRate / 100)
-  return totalIncome - totalExpenses - taxSetAside
+  const taxBase = taxableIncome ?? totalIncome
+  const taxSetAside = taxBase * (taxRate / 100)
+  return totalIncome - totalExpenses - taxSetAside - totalCogs - totalDepreciation
 }
 
 // Per-entry profit — income minus tax setaside only.

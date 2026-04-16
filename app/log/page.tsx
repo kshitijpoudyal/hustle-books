@@ -41,6 +41,7 @@ export default function LogPage() {
   // Income state
   const [incomeHustleId, setIncomeHustleId] = useState('')
   const [incomeAmount, setIncomeAmount] = useState('')
+  const [incomeCogs, setIncomeCogs] = useState('')
   const [incomeDesc, setIncomeDesc] = useState('')
   const [incomeMileage, setIncomeMileage] = useState('')
   const [incomeDate, setIncomeDate] = useState(todayStr())
@@ -89,7 +90,7 @@ export default function LogPage() {
   }, [incomeMileage, incomeDate, snapshots, ratesLoading])
 
   function resetIncomeForm() {
-    setIncomeHustleId(''); setIncomeAmount(''); setIncomeDesc('')
+    setIncomeHustleId(''); setIncomeAmount(''); setIncomeCogs(''); setIncomeDesc('')
     setIncomeMileage(''); setIncomeDate(todayStr()); setIncomeTaxable(true)
   }
   function resetExpenseForm() {
@@ -103,10 +104,11 @@ export default function LogPage() {
     if (!amount || amount <= 0) { toast.error('Please enter a valid amount.'); return }
     setSubmitting(true)
     const miles = parseFloat(incomeMileage) || undefined
+    const cogs = isReselling ? (parseFloat(incomeCogs) || undefined) : undefined
     const ok = await createIncome({
       hustle_id: incomeHustleId, amount,
       description: incomeDesc.trim() || undefined,
-      mileage: miles, date: incomeDate, mileage_method: 'actual',
+      mileage: miles, cogs, date: incomeDate, mileage_method: 'actual',
       is_taxable: incomeTaxable,
     })
     setSubmitting(false)
@@ -130,6 +132,11 @@ export default function LogPage() {
   function handleExpenseSubmit(e: React.FormEvent) { e.preventDefault(); doSubmitExpense() }
 
   const activeHustles = hustles.filter(h => h.is_active)
+  const selectedHustle = useMemo(
+    () => activeHustles.find(h => h.id === incomeHustleId) ?? null,
+    [incomeHustleId, activeHustles]
+  )
+  const isReselling = selectedHustle?.category === 'reselling_and_flipping'
 
   // Shared label style
   const labelCls = 'font-label text-[10px] font-semibold uppercase tracking-[0.1rem] text-[var(--on-surface-variant)] mb-2 block'
@@ -221,6 +228,42 @@ export default function LogPage() {
                   />
                 </div>
               </div>
+
+              {/* Item Cost — reselling only */}
+              {isReselling && (
+                <div className="bg-[var(--surface-container-low)] squircle p-5">
+                  <label className={labelCls}>Item Cost (What you paid)</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-headline font-bold text-[var(--on-surface-variant)] opacity-50">$</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      value={incomeCogs}
+                      onChange={e => setIncomeCogs(e.target.value)}
+                      className={bareInput}
+                    />
+                  </div>
+                  {parseFloat(incomeCogs) > 0 && parseFloat(incomeAmount) > 0 && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60">Gross margin</span>
+                      <span
+                        className="px-2.5 py-0.5 rounded-full font-label text-[10px] font-bold"
+                        style={{
+                          backgroundColor: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                            ? 'rgba(0,106,104,0.1)' : 'rgba(180,60,40,0.1)',
+                          color: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                            ? 'var(--secondary)' : 'var(--expense)',
+                        }}
+                      >
+                        ${(parseFloat(incomeAmount) - parseFloat(incomeCogs)).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Date */}
               <div className="bg-[var(--surface-container-low)] squircle p-5">
@@ -473,29 +516,23 @@ export default function LogPage() {
 
       {/* ══════════════════ DESKTOP ══════════════════ */}
       <div className="hidden lg:block">
-
-        {/* Sticky header */}
-        <header className="fixed top-0 left-0 right-0 z-40 flex justify-between items-center h-20 pl-72 pr-8 bg-transparent">
-          <h2 className="text-[var(--primary)] font-headline text-lg font-bold tracking-tight">Log Transaction</h2>
-          <div className="flex p-1 bg-[var(--surface-container)] rounded-full">
-            {(['income', 'expense'] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`px-5 py-2 rounded-full font-label text-[10px] uppercase tracking-[0.08rem] transition-all duration-300 ${
-                  tab === t
-                    ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] font-semibold shadow-sm'
-                    : 'text-[var(--on-surface-variant)] opacity-60 hover:opacity-100'
-                }`}
-              >
-                {t === 'income' ? 'Income' : 'Expense'}
-              </button>
-            ))}
-          </div>
-        </header>
-
         <main className="pt-8 pb-12 px-8 min-h-screen">
           <div className="max-w-3xl mx-auto flex flex-col gap-8">
+            <div className="flex p-1 bg-[var(--surface-container)] rounded-full w-fit">
+              {(['income', 'expense'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-5 py-2 rounded-full font-label text-[10px] uppercase tracking-[0.08rem] transition-all duration-300 ${
+                    tab === t
+                      ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] font-semibold shadow-sm'
+                      : 'text-[var(--on-surface-variant)] opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  {t === 'income' ? 'Income' : 'Expense'}
+                </button>
+              ))}
+            </div>
 
             {/* Hero amount */}
             <section
@@ -604,6 +641,39 @@ export default function LogPage() {
                       className="w-full bg-[var(--surface-container-highest)] border-none squircle h-14 px-4 font-headline text-sm text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--primary)]/10 focus:outline-none"
                     />
                   </div>
+
+                  {/* Item Cost — reselling only */}
+                  {tab === 'income' && isReselling && (
+                    <div className="space-y-2">
+                      <label className="font-label text-[0.65rem] uppercase tracking-widest text-[var(--on-surface-variant)] block">Item Cost (What you paid)</label>
+                      <div className="relative flex items-center bg-[var(--surface-container-highest)] squircle h-14 px-4 gap-2">
+                        <span className="font-headline text-[var(--on-surface)] opacity-40">$</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={incomeCogs}
+                          onChange={e => setIncomeCogs(e.target.value)}
+                          className="flex-1 bg-transparent border-none p-0 font-headline text-[var(--on-surface)] focus:ring-0 focus:outline-none"
+                        />
+                        {parseFloat(incomeCogs) > 0 && parseFloat(incomeAmount) > 0 && (
+                          <span
+                            className="px-2.5 py-0.5 rounded-full font-label text-[10px] font-bold whitespace-nowrap"
+                            style={{
+                              backgroundColor: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                                ? 'rgba(0,106,104,0.1)' : 'rgba(180,60,40,0.1)',
+                              color: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                                ? 'var(--secondary)' : 'var(--expense)',
+                            }}
+                          >
+                            ${(parseFloat(incomeAmount) - parseFloat(incomeCogs)).toFixed(2)} margin
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
