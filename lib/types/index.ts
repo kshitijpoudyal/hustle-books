@@ -5,6 +5,7 @@ export interface Profile {
     mileage_method: 'actual' | 'irs'
     currency: string
     dark_mode: boolean
+    include_depreciation_in_profit: boolean
     vehicle: {
       year: number | null
       make_model: string | null

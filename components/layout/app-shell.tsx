@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import BottomNav from './bottom-nav'
+import Nav from './nav'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -9,9 +9,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {showNav && <BottomNav />}
-      {/* Mobile: pad bottom for nav bar. Desktop: pad left for sidebar (w-64). */}
-      <div className={showNav ? 'pb-20 lg:pb-0 lg:pl-64 lg:pt-20' : ''}>
+      {showNav && <Nav />}
+      {/* Mobile: pt-[72px] for fixed header height + pb-20 for bottom nav. Desktop: pl-64 sidebar + pt-8 topbar. */}
+      <div className={showNav ? 'pt-[72px] pb-20 lg:pt-0 lg:pb-0 lg:pl-64 lg:pt-8' : ''}>
         {children}
       </div>
     </>

@@ -151,6 +151,7 @@ interface RawState {
   hustles: Hustle[]
   activeSnapshot: RateSnapshot | null
   recentActivity: TransactionEntry[]
+  includeDeprInProfit: boolean
   loading: boolean
   error: string | null
 }
@@ -162,6 +163,7 @@ export function useDashboard(period: Period = 'month'): DashboardData {
     hustles: [],
     activeSnapshot: null,
     recentActivity: [],
+    includeDeprInProfit: true,
     loading: true,
     error: null,
   })
@@ -172,27 +174,30 @@ export function useDashboard(period: Period = 'month'): DashboardData {
       const today = new Date().toISOString().split('T')[0]
 
       try {
-        const [incomeRes, expensesRes, hustlesRes, snapshotRes, recentIncomeRes, recentExpensesRes] = await Promise.all([
+        const [incomeRes, expensesRes, hustlesRes, snapshotRes, recentIncomeRes, recentExpensesRes, profileRes] = await Promise.all([
           supabase.from('income').select('amount, hustle_id, fuel_cost_at_log, depreciation_cost_at_log, mileage, cogs, is_taxable, date'),
           supabase.from('expenses').select('amount, hustle_id, date'),
           supabase.from('hustles').select('*').eq('is_active', true).order('created_at', { ascending: true }),
           supabase.from('rate_snapshots').select('*').lte('effective_date', today).order('effective_date', { ascending: false }).limit(1).single(),
-          supabase.from('income').select('*, hustle:hustles(id, name, color, icon)').order('date', { ascending: false }).order('created_at', { ascending: false }).limit(10),
-          supabase.from('expenses').select('*, hustle:hustles(id, name, color, icon)').order('date', { ascending: false }).order('created_at', { ascending: false }).limit(10),
+          supabase.from('income').select('*, hustle:hustles(id, name, color, icon)').order('date', { ascending: false }).order('created_at', { ascending: false }).limit(5),
+          supabase.from('expenses').select('*, hustle:hustles(id, name, color, icon)').order('date', { ascending: false }).order('created_at', { ascending: false }).limit(5),
+          supabase.from('profiles').select('settings').single(),
         ])
 
         const recentIncome: TransactionEntry[] = (recentIncomeRes.data ?? []).map(r => ({ ...r, entry_type: 'income' as const }))
         const recentExpenses: TransactionEntry[] = (recentExpensesRes.data ?? []).map(r => ({ ...r, entry_type: 'expense' as const }))
         const recentActivity = [...recentIncome, ...recentExpenses]
           .sort((a, b) => b.date !== a.date ? b.date.localeCompare(a.date) : b.created_at.localeCompare(a.created_at))
-          .slice(0, 10)
+          .slice(0, 5)
 
+        const settings = profileRes.data?.settings as { include_depreciation_in_profit?: boolean } | null
         setRaw({
           allIncome: (incomeRes.data ?? []) as RawIncome[],
           allExpenses: (expensesRes.data ?? []) as RawExpense[],
           hustles: hustlesRes.data ?? [],
           activeSnapshot: snapshotRes.data ?? null,
           recentActivity,
+          includeDeprInProfit: settings?.include_depreciation_in_profit ?? true,
           loading: false,
           error: null,
         })
@@ -205,6 +210,7 @@ export function useDashboard(period: Period = 'month'): DashboardData {
 
   const taxRate = raw.activeSnapshot?.tax_rate ?? 25
   const snapshotDaysOld = raw.activeSnapshot ? daysSince(raw.activeSnapshot.effective_date) : 0
+  const includeDeprInProfit = raw.includeDeprInProfit
 
   const { start, end } = useMemo(() => getPeriodRange(period), [period])
 
@@ -224,7 +230,7 @@ export function useDashboard(period: Period = 'month'): DashboardData {
   const totalDepreciation = useMemo(() => filteredIncome.reduce((s, r) => s + Number(r.depreciation_cost_at_log ?? 0), 0), [filteredIncome])
   const totalFuelCost = useMemo(() => filteredIncome.reduce((s, r) => s + Number(r.fuel_cost_at_log ?? 0), 0), [filteredIncome])
   const totalMileage = useMemo(() => filteredIncome.reduce((s, r) => s + Number(r.mileage ?? 0), 0), [filteredIncome])
-  const netProfit = useMemo(() => calcNetProfit(totalIncome, totalExpenses, taxRate, totalCogs, taxableIncome, totalDepreciation), [totalIncome, taxableIncome, totalExpenses, taxRate, totalCogs, totalDepreciation])
+  const netProfit = useMemo(() => calcNetProfit(totalIncome, totalExpenses, taxRate, totalCogs, taxableIncome, includeDeprInProfit ? totalDepreciation : 0), [totalIncome, taxableIncome, totalExpenses, taxRate, totalCogs, totalDepreciation, includeDeprInProfit])
   const taxSetAside = taxableIncome * (taxRate / 100)
 
   const weeklyBars = useMemo(
@@ -240,9 +246,9 @@ export function useDashboard(period: Period = 'month'): DashboardData {
       const exp = filteredExpenses.filter(r => r.hustle_id === hustle.id).reduce((s, r) => s + Number(r.amount), 0)
       const cogs = hustleIncome.reduce((s, r) => s + Number(r.cogs ?? 0), 0)
       const depr = hustleIncome.reduce((s, r) => s + Number(r.depreciation_cost_at_log ?? 0), 0)
-      return { hustle, income: inc, expenses: exp, profit: calcNetProfit(inc, exp, taxRate, cogs, taxableInc, depr) }
+      return { hustle, income: inc, expenses: exp, profit: calcNetProfit(inc, exp, taxRate, cogs, taxableInc, includeDeprInProfit ? depr : 0) }
     }),
-    [raw.hustles, filteredIncome, filteredExpenses, taxRate]
+    [raw.hustles, filteredIncome, filteredExpenses, taxRate, includeDeprInProfit]
   )
 
   return {

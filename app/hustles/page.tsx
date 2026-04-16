@@ -7,6 +7,7 @@ import { useHustles } from '@/lib/hooks/use-hustles'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { HUSTLE_COLORS, HUSTLE_ICONS, HUSTLE_CATEGORIES } from '@/lib/utils/constants'
+import { HustleIcon } from '@/lib/utils/hustle-icons'
 import type { HustleCategory } from '@/lib/utils/constants'
 import { toast } from 'sonner'
 import type { Hustle } from '@/lib/types'
@@ -145,14 +146,14 @@ function HustleForm({ onSubmit, onCancel, submitting }: HustleFormProps) {
               key={ic}
               type="button"
               onClick={() => setIcon(ic)}
-              className="aspect-square rounded-2xl flex items-center justify-center text-xs font-label font-bold transition-all capitalize"
+              className="aspect-square rounded-2xl flex items-center justify-center transition-all"
               style={
                 icon === ic
                   ? { backgroundColor: 'var(--primary)', color: 'white' }
                   : { backgroundColor: 'var(--surface-container)', color: 'var(--primary)' }
               }
             >
-              {ic.slice(0, 3)}
+              <HustleIcon name={ic} size={18} strokeWidth={1.5} />
             </button>
           ))}
         </div>
@@ -188,7 +189,7 @@ function MobileHustleCard({ hustle, income }: { hustle: Hustle; income: number }
           className="p-3 bg-[var(--surface-container-lowest)] rounded-full shadow-sm"
           style={{ color: hustle.color }}
         >
-          <span className="font-label text-xs font-bold uppercase">{hustle.icon.slice(0, 3)}</span>
+          <HustleIcon name={hustle.icon} size={18} strokeWidth={1.5} />
         </div>
         <span
           className="font-label text-[10px] px-3 py-1 rounded-full font-bold tracking-wider"
@@ -224,7 +225,7 @@ function DesktopHustleCard({ hustle, income }: { hustle: Hustle; income: number 
             className="w-12 h-12 rounded-full flex items-center justify-center"
             style={{ backgroundColor: `${hustle.color}20`, color: hustle.color }}
           >
-            <span className="font-label text-xs font-bold uppercase">{hustle.icon.slice(0, 3)}</span>
+            <HustleIcon name={hustle.icon} size={20} strokeWidth={1.5} />
           </div>
           <span
             className="font-label text-[10px] uppercase font-bold px-3 py-1 rounded-full tracking-wider"
@@ -320,11 +321,6 @@ export default function HustlesPage() {
 
       {/* ══════════════════ MOBILE ══════════════════ */}
       <div className="lg:hidden pb-40">
-
-        {/* AppBar */}
-        <header className="flex justify-between items-center px-6 py-4 bg-[var(--surface)]">
-          <h1 className="font-headline font-black text-2xl tracking-tight text-[var(--primary)]">HustleBooks</h1>
-        </header>
 
         <main className="px-6 pt-4 max-w-5xl mx-auto">
           <header className="mb-10">
