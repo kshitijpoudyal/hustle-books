@@ -49,6 +49,7 @@ export default function SettingsPage() {
   const [savingName, setSavingName] = useState(false)
   const [savingVehicle, setSavingVehicle] = useState(false)
   const [savingAll, setSavingAll] = useState(false)
+  const [includeDeprInProfit, setIncludeDeprInProfit] = useState(true)
 
   // Depreciation calculator
   const [purchasePrice, setPurchasePrice] = useState('')
@@ -62,6 +63,7 @@ export default function SettingsPage() {
 
   const hydrateFromProfile = useCallback((p: Profile) => {
     setFullName(p.full_name ?? '')
+    setIncludeDeprInProfit(p.settings?.include_depreciation_in_profit ?? true)
     const v = p.settings?.vehicle
     if (v) {
       setVehicleYear(v.year?.toString() ?? '')
@@ -73,6 +75,12 @@ export default function SettingsPage() {
   useEffect(() => {
     if (profile) hydrateFromProfile(profile)
   }, [profile, hydrateFromProfile])
+
+  async function handleToggleDeprInProfit(val: boolean) {
+    if (!profile) return
+    setIncludeDeprInProfit(val)
+    await updateProfile({ settings: { ...profile.settings, include_depreciation_in_profit: val } })
+  }
 
   async function handleSaveName() {
     if (!fullName.trim()) return
@@ -107,6 +115,7 @@ export default function SettingsPage() {
     const vehicleOk = await updateProfile({
       settings: {
         ...profile.settings,
+        include_depreciation_in_profit: includeDeprInProfit,
         vehicle: {
           ...profile.settings.vehicle,
           year: vehicleYear ? parseInt(vehicleYear) : null,
@@ -152,14 +161,6 @@ export default function SettingsPage() {
 
       {/* ══════════════════ MOBILE ══════════════════ */}
       <div className="lg:hidden pb-32">
-
-        {/* Sticky AppBar */}
-        <header
-          className="sticky top-0 z-20 flex justify-between items-center px-6 py-4"
-          style={{ backgroundColor: 'var(--surface)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-        >
-          <h1 className="font-headline font-black text-2xl tracking-tight text-[var(--primary)]">HustleBooks</h1>
-        </header>
 
         <main className="max-w-4xl mx-auto px-6 py-8 space-y-16">
 
@@ -326,6 +327,37 @@ export default function SettingsPage() {
             </div>
           </section>
 
+          {/* Profit Calculation */}
+          <section className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+            <div className="md:col-span-4">
+              <h2 className="font-headline font-extrabold text-3xl tracking-tight text-[var(--primary)]">Profit</h2>
+              <p className="text-[var(--on-surface-variant)] mt-2 font-body text-sm">Control how net profit is calculated.</p>
+            </div>
+            <div className="md:col-span-8 bg-[var(--surface-container-low)] rounded-[1rem] p-8">
+              <button
+                type="button"
+                onClick={() => handleToggleDeprInProfit(!includeDeprInProfit)}
+                className="w-full flex items-center justify-between gap-4 py-2"
+              >
+                <div className="text-left">
+                  <p className="font-label text-sm font-bold text-[var(--primary)]">Include depreciation in net profit</p>
+                  <p className="font-body text-xs text-[var(--on-surface-variant)] mt-1">
+                    When on, vehicle depreciation is subtracted from your profit figure.
+                  </p>
+                </div>
+                <div
+                  className="relative flex-shrink-0 w-12 h-7 rounded-full transition-colors duration-200"
+                  style={{ backgroundColor: includeDeprInProfit ? 'var(--primary)' : 'var(--surface-container-highest)' }}
+                >
+                  <div
+                    className="absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                    style={{ transform: includeDeprInProfit ? 'translateX(1.4rem)' : 'translateX(0.2rem)' }}
+                  />
+                </div>
+              </button>
+            </div>
+          </section>
+
           {/* Sign Out */}
           <div className="flex justify-center pt-4">
             <button
@@ -346,6 +378,7 @@ export default function SettingsPage() {
 
             {/* Chapter I — Profile */}
             <section className="col-span-12">
+              <h2 className="font-headline font-extrabold text-3xl tracking-tight text-[var(--primary)] mb-4">Profile</h2>
               <div className="bg-[var(--surface-container-low)] squircle p-8 flex flex-col md:flex-row gap-12 items-center">
                 {/* Avatar */}
                 <div className="w-32 h-32 rounded-full bg-[var(--surface-container-highest)] flex items-center justify-center flex-shrink-0">
@@ -377,6 +410,7 @@ export default function SettingsPage() {
 
             {/* Chapter II — Financial Ratios */}
             <section className="col-span-12 lg:col-span-5">
+              <h2 className="font-headline font-extrabold text-3xl tracking-tight text-[var(--primary)] mb-4">Current Rates</h2>
               {activeSnapshot ? (
                 <div
                   className="text-white squircle p-8 shadow-2xl"
@@ -443,6 +477,7 @@ export default function SettingsPage() {
 
             {/* Chapter III — Technical Inventory */}
             <section className="col-span-12 lg:col-span-7">
+              <h2 className="font-headline font-extrabold text-3xl tracking-tight text-[var(--primary)] mb-4">Vehicle Info</h2>
               <div className="bg-[var(--surface-container-low)] squircle p-8 h-[calc(100%-4rem)] flex flex-col justify-between">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -502,6 +537,30 @@ export default function SettingsPage() {
               </div>
             </section>
           </div>
+
+          {/* Profit Calculation */}
+          <section className="col-span-12 mt-8">
+            <h2 className="font-headline font-extrabold text-3xl tracking-tight text-[var(--primary)] mb-4">Profit</h2>
+            <div className="bg-[var(--surface-container-low)] squircle p-8 flex items-center justify-between gap-8">
+              <div>
+                <p className="font-headline font-bold text-[var(--primary)]">Include depreciation in net profit</p>
+                <p className="font-body text-sm text-[var(--on-surface-variant)] mt-1">
+                  When on, vehicle depreciation is subtracted from your profit figure across the dashboard and hustle pages.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggleDeprInProfit(!includeDeprInProfit)}
+                className="relative flex-shrink-0 w-14 h-8 rounded-full transition-colors duration-200"
+                style={{ backgroundColor: includeDeprInProfit ? 'var(--primary)' : 'var(--surface-container-highest)' }}
+              >
+                <div
+                  className="absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200"
+                  style={{ transform: includeDeprInProfit ? 'translateX(1.6rem)' : 'translateX(0.25rem)' }}
+                />
+              </button>
+            </div>
+          </section>
 
           {/* Footer actions */}
           <footer className="mt-20 flex justify-end gap-4">

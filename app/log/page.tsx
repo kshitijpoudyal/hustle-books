@@ -149,15 +149,7 @@ export default function LogPage() {
       {/* ══════════════════ MOBILE ══════════════════ */}
       <div className="lg:hidden pb-32 overflow-x-hidden">
 
-        {/* Fixed AppBar */}
-        <header
-          className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4"
-          style={{ backgroundColor: 'var(--surface)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-        >
-          <h1 className="font-headline font-black text-2xl tracking-tight text-[var(--primary)]">HustleBooks</h1>
-        </header>
-
-        <main className="mt-20 px-6 max-w-lg mx-auto">
+        <main className="px-6 max-w-lg mx-auto">
 
           {/* Segment Toggle */}
           <div className="flex p-1 bg-[var(--surface-container)] rounded-full mb-8">

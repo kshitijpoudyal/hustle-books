@@ -3,11 +3,13 @@
 import { use, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Plus, MoreVertical, Pencil, Trash2, Zap, Archive } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatMileage } from '@/lib/utils/formatters'
 import { HUSTLE_COLORS, HUSTLE_ICONS, HUSTLE_CATEGORIES } from '@/lib/utils/constants'
+import { HustleIcon } from '@/lib/utils/hustle-icons'
 import { MobileTransactionRow, DesktopTransactionRow, MobileTransactionRowSkeleton } from '@/components/transaction-row'
+import StatCard from '@/components/shared/stat-card'
 import type { HustleCategory } from '@/lib/utils/constants'
 import { toast } from 'sonner'
 import type { Hustle, IncomeEntry, ExpenseEntry } from '@/lib/types'
@@ -137,14 +139,14 @@ function ConfigForm({ name, color, icon, category, saving, onNameChange, onColor
               key={ic}
               type="button"
               onClick={() => onIconChange(ic)}
-              className="aspect-square squircle flex items-center justify-center font-label text-[9px] uppercase font-bold tracking-wider transition-colors"
+              className="aspect-square squircle flex items-center justify-center transition-colors"
               style={
                 icon === ic
                   ? { backgroundColor: 'var(--primary)', color: 'var(--on-primary)' }
                   : { backgroundColor: 'var(--surface-container-high)', color: 'var(--on-surface-variant)' }
               }
             >
-              {ic.slice(0, 3)}
+              <HustleIcon name={ic} size={20} strokeWidth={1.5} />
             </button>
           ))}
         </div>
@@ -177,6 +179,7 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
     totalDepreciation: 0, totalMileage: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [includeDeprInProfit, setIncludeDeprInProfit] = useState(true)
 
   // Edit state
   const [editName, setEditName] = useState('')
@@ -201,12 +204,13 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
     const supabase = createClient()
     const { from, to } = currentMonthRange()
 
-    const [hustleRes, incomeRes, expensesRes, monthIncRes, monthExpRes] = await Promise.all([
+    const [hustleRes, incomeRes, expensesRes, monthIncRes, monthExpRes, profileRes] = await Promise.all([
       supabase.from('hustles').select('*').eq('id', id).single(),
       supabase.from('income').select('*').eq('hustle_id', id).order('date', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('expenses').select('*').eq('hustle_id', id).order('date', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('income').select('amount, is_taxable, depreciation_cost_at_log').eq('hustle_id', id).gte('date', from).lte('date', to),
       supabase.from('expenses').select('amount').eq('hustle_id', id).gte('date', from).lte('date', to),
+      supabase.from('profiles').select('settings').single(),
     ])
 
     if (!hustleRes.data) { router.push('/hustles'); return }
@@ -240,6 +244,8 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
     const totalMiles = incomes.reduce((s, e) => s + Number(e.mileage ?? 0), 0)
 
     setStats({ monthIncome: monthInc, monthTaxableIncome: monthTaxableInc, monthDepreciation: monthDepr, monthExpenses: monthExp, allTimeIncome: allTimeInc, allTimeTaxableIncome: allTimeTaxableInc, allTimeExpenses: allTimeExp, totalDepreciation: totalDepr, totalMileage: totalMiles })
+    const profileSettings = profileRes.data?.settings as { include_depreciation_in_profit?: boolean } | null
+    setIncludeDeprInProfit(profileSettings?.include_depreciation_in_profit ?? true)
     setLoading(false)
   }, [id, router])
 
@@ -301,9 +307,8 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
   if (!hustle) return null
 
   const taxSetAside = stats.monthTaxableIncome * 0.25
-  const netProfit = stats.monthIncome - stats.monthExpenses - taxSetAside - stats.monthDepreciation
   const allTimeTax = stats.allTimeTaxableIncome * 0.25
-  const allTimeNetProfit = stats.allTimeIncome - stats.allTimeExpenses - allTimeTax - stats.totalDepreciation
+  const allTimeNetProfit = stats.allTimeIncome - stats.allTimeExpenses - allTimeTax - (includeDeprInProfit ? stats.totalDepreciation : 0)
   const todayStr = new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
 
   return (
@@ -313,27 +318,6 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
           MOBILE  (lg:hidden)
       ══════════════════════════════════════════════════════════════ */}
       <div className="lg:hidden">
-
-        {/* TopAppBar */}
-        <nav
-          className="sticky top-0 z-50 flex justify-between items-center w-full px-6 py-4"
-          style={{ backgroundColor: 'var(--surface)' }}
-        >
-          <div className="flex items-center gap-3">
-            <Link href="/hustles" className="text-[var(--primary)]">
-              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </Link>
-            <span className="text-xl font-black tracking-tighter text-[var(--primary)]">HUSTLEBOOKS</span>
-          </div>
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: 'var(--surface-container-high)' }}
-          >
-            <span className="font-label text-xs font-bold text-[var(--primary)]">HB</span>
-          </div>
-        </nav>
 
         <main className="px-6 pb-32">
 
@@ -371,7 +355,9 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
                       onClick={() => { setShowStatusConfirm(true); setShowMore(false) }}
                       className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[var(--surface-container-low)] transition-colors"
                     >
-                      <Pencil className="w-4 h-4 text-[var(--secondary)]" strokeWidth={1.5} />
+                      {hustle.is_active
+                        ? <Archive className="w-4 h-4 text-[var(--secondary)]" strokeWidth={1.5} />
+                        : <Zap className="w-4 h-4 text-[var(--secondary)]" strokeWidth={1.5} />}
                       <span className="font-label text-sm text-[var(--secondary)]">
                         {hustle.is_active ? 'Archive hustle' : 'Mark active'}
                       </span>
@@ -391,23 +377,22 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
 
           {/* Stats Cards */}
           <section className="grid grid-cols-1 gap-6 mb-12">
-            <div className="squircle bg-[var(--surface-container-low)] p-8 flex flex-col justify-between h-48">
-              <span className="font-label text-xs uppercase tracking-[0.1rem] text-[var(--on-surface-variant)] font-bold">Monthly Income</span>
-              <div>
-                <span className="text-4xl font-black text-[var(--primary)] tracking-tighter">{formatCurrency(stats.monthIncome)}</span>
-                <p className="font-label text-xs text-[var(--on-surface-variant)]/70 mt-2 uppercase">Gross Revenue</p>
-              </div>
-            </div>
+            <StatCard
+              label="Monthly Income"
+              value={formatCurrency(stats.monthIncome)}
+              sub="Gross Revenue"
+              height="h-48"
+              className="p-8"
+            />
 
-            <div className="squircle bg-[var(--surface-container-low)] p-8 flex flex-col justify-between h-48">
-              <span className="font-label text-xs uppercase tracking-[0.1rem] text-[var(--on-surface-variant)] font-bold">Monthly Expenses</span>
-              <div>
-                <span className="text-4xl font-black tracking-tighter" style={{ color: 'var(--expense)' }}>
-                  −{formatCurrency(stats.monthExpenses)}
-                </span>
-                <p className="font-label text-xs text-[var(--on-surface-variant)]/70 mt-2 uppercase">Operating Costs</p>
-              </div>
-            </div>
+            <StatCard
+              label="Monthly Expenses"
+              value={`−${formatCurrency(stats.monthExpenses)}`}
+              sub="Operating Costs"
+              valueColor="var(--expense)"
+              height="h-48"
+              className="p-8"
+            />
 
             <div
               className="squircle p-8 flex flex-col justify-between h-48"
@@ -427,23 +412,7 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
             </div>
           </section>
 
-          {/* Summary Pivot */}
-          <div className="mb-16 flex items-center gap-6 px-4">
-            <div className="h-[2px] flex-grow bg-[var(--surface-container)]" />
-            <div className="text-center">
-              <span className="font-label text-xs uppercase tracking-widest block mb-1 text-[var(--on-surface-variant)]">
-                Estimated Net Profit
-              </span>
-              <span className="text-4xl font-black tracking-tighter" style={{ color: 'var(--secondary)' }}>
-                {formatCurrency(netProfit)}
-              </span>
-            </div>
-            <div className="h-[2px] flex-grow bg-[var(--surface-container)]" />
-          </div>
-
           <div className="grid grid-cols-1 gap-12">
-
-
             {/* Recent Activity */}
             <section>
               <div className="flex justify-between items-center mb-8">
@@ -486,19 +455,6 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
 
           </div>
         </main>
-
-        {/* FAB */}
-        <Link
-          href="/log"
-          className="fixed bottom-28 right-8 w-16 h-16 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40 text-white"
-          style={{
-            background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
-            boxShadow: '0 32px 64px rgba(2,36,72,0.12)',
-          }}
-        >
-          <Plus className="w-7 h-7" strokeWidth={2} />
-        </Link>
-
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
@@ -567,16 +523,18 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
                 className="w-20 h-20 squircle flex items-center justify-center"
                 style={{ backgroundColor: `${hustle.color}18`, color: hustle.color }}
               >
-                <span className="font-label text-2xl font-black">{hustle.icon.slice(0, 3).toUpperCase()}</span>
+                <HustleIcon name={hustle.icon} size={36} strokeWidth={1.5} />
               </div>
               <div>
                 <h2 className="text-6xl font-black text-[var(--primary)] tracking-tight mb-2">{hustle.name}</h2>
                 <div className="flex items-center gap-4">
                   <span
-                    className="px-4 py-1 rounded-full text-white font-label text-[10px] font-bold tracking-widest uppercase"
+                    className="flex items-center gap-1.5 px-4 py-1 rounded-full text-white font-label text-[10px] font-bold tracking-widest uppercase"
                     style={{ backgroundColor: hustle.is_active ? 'var(--secondary)' : 'var(--on-surface-variant)' }}
                   >
-                    {hustle.is_active ? 'Active Stream' : 'Archived'}
+                    {hustle.is_active
+                      ? <><Zap size={10} strokeWidth={2} /> Active Stream</>
+                      : <><Archive size={10} strokeWidth={2} /> Archived</>}
                   </span>
                   <div className="relative">
                     <button
@@ -604,7 +562,9 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
                             onClick={() => { setShowStatusConfirm(true); setShowMore(false) }}
                             className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[var(--surface-container-low)] transition-colors"
                           >
-                            <Pencil className="w-4 h-4 text-[var(--secondary)]" strokeWidth={1.5} />
+                            {hustle.is_active
+                              ? <Archive className="w-4 h-4 text-[var(--secondary)]" strokeWidth={1.5} />
+                              : <Zap className="w-4 h-4 text-[var(--secondary)]" strokeWidth={1.5} />}
                             <span className="font-label text-sm text-[var(--secondary)]">
                               {hustle.is_active ? 'Archive hustle' : 'Mark active'}
                             </span>
@@ -633,32 +593,40 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
 
           {/* Financial Overview */}
           <section className={`grid gap-6 mb-12 ${stats.totalMileage > 0 ? 'grid-cols-5' : 'grid-cols-4'}`}>
-            <div className="squircle bg-[var(--surface-container-low)] p-8 flex flex-col justify-between h-48">
-              <span className="font-label text-[10px] font-bold tracking-[0.1rem] uppercase" style={{ color: 'rgba(2,36,72,0.6)' }}>Net Profit</span>
-              <p className="text-4xl font-black" style={{ color: 'var(--secondary)' }}>{formatCurrency(allTimeNetProfit)}</p>
-            </div>
-            <div className="squircle bg-[var(--surface-container-low)] p-8 flex flex-col justify-between h-48">
-              <span className="font-label text-[10px] font-bold tracking-[0.1rem] uppercase" style={{ color: 'rgba(2,36,72,0.6)' }}>Total Income</span>
-              <p className="text-4xl font-black text-[var(--primary)]">{formatCurrency(stats.allTimeIncome)}</p>
-            </div>
-            <div className="squircle bg-[var(--surface-container-low)] p-8 flex flex-col justify-between h-48">
-              <span className="font-label text-[10px] font-bold tracking-[0.1rem] uppercase" style={{ color: 'rgba(2,36,72,0.6)' }}>Total Expenses</span>
-              <p className="text-4xl font-black" style={{ color: 'var(--expense)' }}>{formatCurrency(stats.allTimeExpenses)}</p>
-            </div>
-            <div className="squircle bg-[var(--surface-container-low)] p-8 flex flex-col justify-between h-48">
-              <span className="font-label text-[10px] font-bold tracking-[0.1rem] uppercase" style={{ color: 'rgba(2,36,72,0.6)' }}>Estimated Taxes</span>
-              <p className="text-4xl font-black text-[var(--primary)]">{formatCurrency(allTimeTax)}</p>
-            </div>
+            <StatCard
+              label="Net Profit"
+              value={formatCurrency(allTimeNetProfit)}
+              valueColor="var(--secondary)"
+              height="h-48"
+              className="p-8"
+            />
+            <StatCard
+              label="Total Income"
+              value={formatCurrency(stats.allTimeIncome)}
+              height="h-48"
+              className="p-8"
+            />
+            <StatCard
+              label="Total Expenses"
+              value={formatCurrency(stats.allTimeExpenses)}
+              valueColor="var(--expense)"
+              height="h-48"
+              className="p-8"
+            />
+            <StatCard
+              label="Estimated Taxes"
+              value={formatCurrency(allTimeTax)}
+              height="h-48"
+              className="p-8"
+            />
             {stats.totalMileage > 0 && (
-              <div className="squircle bg-[var(--surface-container-low)] p-8 flex flex-col justify-between h-48">
-                <div>
-                  <span className="font-label text-[10px] font-bold tracking-[0.1rem] uppercase block" style={{ color: 'rgba(2,36,72,0.6)' }}>Depreciation</span>
-                  <span className="font-label text-[10px] tracking-widest uppercase mt-1 block" style={{ color: 'rgba(2,36,72,0.4)' }}>
-                    {formatMileage(stats.totalMileage)} mi
-                  </span>
-                </div>
-                <p className="text-4xl font-black text-[var(--primary)]">{formatCurrency(stats.totalDepreciation)}</p>
-              </div>
+              <StatCard
+                label="Depreciation"
+                value={formatCurrency(stats.totalDepreciation)}
+                sub={`${formatMileage(stats.totalMileage)} mi`}
+                height="h-48"
+                className="p-8"
+              />
             )}
           </section>
 
@@ -798,10 +766,12 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
               <button
                 onClick={handleStatusChange}
                 disabled={updatingStatus}
-                className="flex-1 py-4 squircle font-label text-[10px] font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                className="flex-1 py-4 squircle font-label text-[10px] font-bold uppercase tracking-widest text-white disabled:opacity-50 flex items-center justify-center gap-2"
                 style={{ backgroundColor: hustle.is_active ? 'var(--on-surface-variant)' : 'var(--secondary)' }}
               >
-                {updatingStatus ? 'Saving…' : hustle.is_active ? 'Archive' : 'Mark Active'}
+                {hustle.is_active
+                  ? <><Archive size={12} strokeWidth={2} />{updatingStatus ? 'Saving…' : 'Archive'}</>
+                  : <><Zap size={12} strokeWidth={2} />{updatingStatus ? 'Saving…' : 'Mark Active'}</>}
               </button>
             </div>
           </div>

@@ -4,35 +4,9 @@ import { useState } from 'react'
 import { useDashboard, PERIOD_LABELS } from '@/lib/hooks/use-dashboard'
 import type { Period } from '@/lib/hooks/use-dashboard'
 import { formatCurrency, formatMileage, formatIrsRate, formatTaxRate } from '@/lib/utils/formatters'
+import StatCard from '@/components/shared/stat-card'
 
 const PERIOD_SHORT: Record<Period, string> = { week: 'Week', month: 'Month', year: 'Year', all: 'All Time' }
-
-function StatCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
-  return (
-    <div className="bg-[var(--surface-container-low)] squircle p-6 flex flex-col justify-between gap-3 h-36">
-      <span className="font-label text-[10px] font-semibold uppercase tracking-[0.1rem] text-[var(--on-surface-variant)]">
-        {label}
-      </span>
-      <div>
-        <p
-          className="text-2xl font-black tracking-tight font-headline"
-          style={{ color: accent ? 'var(--secondary)' : 'var(--primary)' }}
-        >
-          {value}
-        </p>
-        {sub && (
-          <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60 mt-1">
-            {sub}
-          </p>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function SkeletonCard() {
-  return <div className="squircle h-36 bg-[var(--surface-container-low)] animate-pulse" />
-}
 
 export default function TaxPage() {
   const [period, setPeriod] = useState<Period>('year')
@@ -58,14 +32,6 @@ export default function TaxPage() {
 
       {/* ══════════════════ MOBILE ══════════════════ */}
       <div className="lg:hidden pb-32">
-        <header
-          className="sticky top-0 z-40 flex justify-between items-center px-6 py-4 bg-[var(--surface)]"
-        >
-          <h1 className="font-headline font-black text-xl tracking-tight text-[var(--primary)]">HustleBooks</h1>
-          <div className="w-10 h-10 rounded-2xl bg-[var(--surface-container-high)] flex items-center justify-center">
-            <span className="font-label text-xs font-bold text-[var(--primary)]">TX</span>
-          </div>
-        </header>
 
         <main className="px-6 mt-2 space-y-8">
 
@@ -96,33 +62,35 @@ export default function TaxPage() {
 
           {/* Key numbers 2×2 grid */}
           <section className="grid grid-cols-2 gap-4">
-            {loading ? (
-              [1,2,3,4].map(i => <SkeletonCard key={i} />)
-            ) : (
-              <>
-                <StatCard
-                  label="Estimated Tax"
-                  value={formatCurrency(taxSetAside)}
-                  sub={activeSnapshot ? `${formatTaxRate(activeSnapshot.tax_rate)} SE rate` : undefined}
-                  accent
-                />
-                <StatCard
-                  label="Taxable Income"
-                  value={formatCurrency(taxableIncome)}
-                  sub="Is taxable entries"
-                />
-                <StatCard
-                  label="IRS Mileage Deduction"
-                  value={formatCurrency(irsDeduction)}
-                  sub={activeSnapshot ? `${formatIrsRate(activeSnapshot.irs_rate)} × ${formatMileage(totalMileage)}` : undefined}
-                />
-                <StatCard
-                  label="Total Miles"
-                  value={formatMileage(totalMileage)}
-                  sub="Business miles driven"
-                />
-              </>
-            )}
+            <StatCard
+              label="Estimated Tax"
+              value={formatCurrency(taxSetAside)}
+              sub={activeSnapshot ? `${formatTaxRate(activeSnapshot.tax_rate)} SE rate` : undefined}
+              accent
+              height="h-36"
+              loading={loading}
+            />
+            <StatCard
+              label="Taxable Income"
+              value={formatCurrency(taxableIncome)}
+              sub="Is taxable entries"
+              height="h-36"
+              loading={loading}
+            />
+            <StatCard
+              label="IRS Mileage Deduction"
+              value={formatCurrency(irsDeduction)}
+              sub={activeSnapshot ? `${formatIrsRate(activeSnapshot.irs_rate)} × ${formatMileage(totalMileage)}` : undefined}
+              height="h-36"
+              loading={loading}
+            />
+            <StatCard
+              label="Total Miles"
+              value={formatMileage(totalMileage)}
+              sub="Business miles driven"
+              height="h-36"
+              loading={loading}
+            />
           </section>
 
           {/* Income breakdown */}
@@ -281,40 +249,35 @@ export default function TaxPage() {
 
           {/* 4-col stat cards */}
           <section className="grid grid-cols-4 gap-6 mb-10">
-            {loading ? (
-              [1,2,3,4].map(i => <div key={i} className="squircle h-36 bg-[var(--surface-container-low)] animate-pulse" />)
-            ) : (
-              <>
-                <div className="squircle p-8 flex flex-col justify-between h-36" style={{ backgroundColor: 'var(--surface-container-low)' }}>
-                  <span className="font-label text-[10px] font-semibold uppercase tracking-[0.1rem] text-[var(--on-surface-variant)]">Estimated Tax</span>
-                  <div>
-                    <p className="text-3xl font-black tracking-tight font-headline" style={{ color: 'var(--secondary)' }}>{formatCurrency(taxSetAside)}</p>
-                    {activeSnapshot && <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60 mt-1">{formatTaxRate(activeSnapshot.tax_rate)} of taxable income</p>}
-                  </div>
-                </div>
-                <div className="squircle p-8 flex flex-col justify-between h-36" style={{ backgroundColor: 'var(--surface-container-low)' }}>
-                  <span className="font-label text-[10px] font-semibold uppercase tracking-[0.1rem] text-[var(--on-surface-variant)]">Taxable Income</span>
-                  <div>
-                    <p className="text-3xl font-black tracking-tight font-headline text-[var(--primary)]">{formatCurrency(taxableIncome)}</p>
-                    <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60 mt-1">{formatCurrency(nonTaxableIncome)} non-taxable</p>
-                  </div>
-                </div>
-                <div className="squircle p-8 flex flex-col justify-between h-36" style={{ backgroundColor: 'var(--surface-container-low)' }}>
-                  <span className="font-label text-[10px] font-semibold uppercase tracking-[0.1rem] text-[var(--on-surface-variant)]">IRS Mileage Deduction</span>
-                  <div>
-                    <p className="text-3xl font-black tracking-tight font-headline text-[var(--primary)]">{formatCurrency(irsDeduction)}</p>
-                    {activeSnapshot && <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60 mt-1">{formatMileage(totalMileage)} × {formatIrsRate(activeSnapshot.irs_rate)}</p>}
-                  </div>
-                </div>
-                <div className="squircle p-8 flex flex-col justify-between h-36" style={{ backgroundColor: 'var(--surface-container-low)' }}>
-                  <span className="font-label text-[10px] font-semibold uppercase tracking-[0.1rem] text-[var(--on-surface-variant)]">Total Miles</span>
-                  <div>
-                    <p className="text-3xl font-black tracking-tight font-headline text-[var(--primary)]">{formatMileage(totalMileage)}</p>
-                    <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60 mt-1">Business miles</p>
-                  </div>
-                </div>
-              </>
-            )}
+            <StatCard
+              label="Estimated Tax"
+              value={formatCurrency(taxSetAside)}
+              sub={activeSnapshot ? `${formatTaxRate(activeSnapshot.tax_rate)} of taxable income` : undefined}
+              accent
+              height="h-36"
+              loading={loading}
+            />
+            <StatCard
+              label="Taxable Income"
+              value={formatCurrency(taxableIncome)}
+              sub={`${formatCurrency(nonTaxableIncome)} non-taxable`}
+              height="h-36"
+              loading={loading}
+            />
+            <StatCard
+              label="IRS Mileage Deduction"
+              value={formatCurrency(irsDeduction)}
+              sub={activeSnapshot ? `${formatMileage(totalMileage)} × ${formatIrsRate(activeSnapshot.irs_rate)}` : undefined}
+              height="h-36"
+              loading={loading}
+            />
+            <StatCard
+              label="Total Miles"
+              value={formatMileage(totalMileage)}
+              sub="Business miles"
+              height="h-36"
+              loading={loading}
+            />
           </section>
 
           {/* Two-col layout: Income breakdown + Cost reference */}

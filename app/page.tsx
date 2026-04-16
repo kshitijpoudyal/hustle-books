@@ -7,7 +7,7 @@ import StatCards from '@/components/dashboard/stat-cards'
 import RecentActivity from '@/components/dashboard/recent-activity'
 import RevenueTrendCard from '@/components/dashboard/revenue-trend-card'
 import Link from 'next/link'
-import { BookOpen, User, TrendingUp } from 'lucide-react'
+import { TrendingUp, Receipt } from 'lucide-react'
 
 const PERIOD_SHORT: Record<Period, string> = { week: 'Week', month: 'Month', year: 'Year', all: 'All Time' }
 
@@ -41,18 +41,6 @@ export default function DashboardPage() {
 
       {/* ── Mobile ──────────────────────────────────────────────────────────── */}
       <div className="lg:hidden pb-32">
-        {/* Top AppBar */}
-        <header className="sticky top-0 z-40 flex justify-between items-center px-6 py-4 bg-[var(--background)]">
-          <div className="flex items-center gap-3">
-            <BookOpen className="w-5 h-5 text-[var(--primary)]" strokeWidth={2} />
-            <h1 className="font-headline font-black text-xl tracking-tight text-[var(--primary)]">
-              HustleBooks
-            </h1>
-          </div>
-          <div className="w-10 h-10 rounded-2xl bg-[var(--surface-container-high)] flex items-center justify-center flex-shrink-0">
-            <User className="w-5 h-5 text-[var(--primary)]" strokeWidth={1.5} />
-          </div>
-        </header>
 
         <div className="px-6 space-y-8 mt-4">
 
@@ -112,9 +100,6 @@ export default function DashboardPage() {
         {/* Header row: title + period selector */}
         <div className="flex items-end justify-between pt-10 mb-8">
           <div>
-            <p className="font-label text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60 mb-1">
-              Overview
-            </p>
             <h1 className="font-headline font-black text-5xl text-[var(--primary)] tracking-tight">
               Dashboard
             </h1>

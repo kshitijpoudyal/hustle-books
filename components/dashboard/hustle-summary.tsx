@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils/formatters'
+import { HustleIcon } from '@/lib/utils/hustle-icons'
 import type { HustleStat } from '@/lib/hooks/use-dashboard'
 
 interface HustleSummaryProps {
@@ -61,10 +62,10 @@ export default function HustleSummary({ hustleStats, loading }: HustleSummaryPro
               {/* Icon + name */}
               <div className="mb-4">
                 <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center mb-3 text-xs font-bold text-white"
-                  style={{ backgroundColor: hustle.color }}
+                  className="w-9 h-9 rounded-full flex items-center justify-center mb-3"
+                  style={{ backgroundColor: `${hustle.color}20`, color: hustle.color }}
                 >
-                  {hustle.name.slice(0, 2).toUpperCase()}
+                  <HustleIcon name={hustle.icon} size={18} strokeWidth={1.5} />
                 </div>
                 <p className="font-headline text-sm font-extrabold text-[var(--primary)] leading-tight line-clamp-1">
                   {hustle.name}

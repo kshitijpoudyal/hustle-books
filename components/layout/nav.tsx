@@ -1,31 +1,59 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Clock,
-  PenLine,
   Rocket,
   Settings,
-  LogOut,
   PlusCircle,
-  Search,
-  Bell,
-  CircleUser,
-  Receipt,
+  BookOpen,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useProfile } from '@/lib/hooks/use-profile'
 
 const NAV_ITEMS = [
   { href: '/',         label: 'Dashboard', Icon: LayoutDashboard },
   { href: '/history',  label: 'History',   Icon: Clock },
-  { href: '/log',      label: 'Log',       Icon: PenLine, primary: true },
+  { href: '/log',      label: 'Log',       Icon: PlusCircle, primary: true },
   { href: '/hustles',  label: 'Hustles',   Icon: Rocket },
-  { href: '/tax',      label: 'Tax',       Icon: Receipt },
   { href: '/settings', label: 'Settings',  Icon: Settings },
 ]
+
+/* ── Mobile top header ────────────────────────────────────────────────────── */
+export function MobileHeader() {
+  const { profile, email } = useProfile()
+
+  const displayName = profile?.full_name ?? email?.split('@')[0] ?? 'You'
+  const initials = displayName
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+  return (
+    <header
+      className="lg:hidden fixed top-0 left-0 right-0 z-40 flex justify-between items-center px-6 py-4"
+      style={{
+        background: 'rgba(251, 249, 243, 0.92)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: '0 1px 0 rgba(2, 36, 72, 0.06)',
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <BookOpen className="w-5 h-5 text-[var(--primary)]" strokeWidth={2} />
+        <span className="font-headline font-black text-xl tracking-tight text-[var(--primary)]">
+          HustleBooks
+        </span>
+      </div>
+      <div className="w-10 h-10 rounded-2xl bg-[var(--surface-container-high)] flex items-center justify-center flex-shrink-0">
+        <span className="font-label text-xs font-semibold text-[var(--primary)]">{initials}</span>
+      </div>
+    </header>
+  )
+}
 
 /* ── Mobile bottom nav ────────────────────────────────────────────────────── */
 function MobileNav({ pathname }: { pathname: string }) {
@@ -79,14 +107,7 @@ function MobileNav({ pathname }: { pathname: string }) {
 
 /* ── Desktop sidebar ──────────────────────────────────────────────────────── */
 function DesktopSidebar({ pathname }: { pathname: string }) {
-  const router = useRouter()
   const { profile, email } = useProfile()
-
-  async function handleSignOut() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
 
   const displayName = profile?.full_name ?? email?.split('@')[0] ?? 'You'
   const initials = displayName
@@ -163,9 +184,6 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-headline text-sm font-bold text-[var(--primary)] truncate">{displayName}</p>
-            <span className="font-label text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)]">
-              Pro Account
-            </span>
           </div>
         </div>
       </div>
@@ -173,34 +191,13 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
   )
 }
 
-/* ── Desktop top header bar ───────────────────────────────────────────────── */
-function DesktopTopBar() {
-  const pathname = usePathname()
-  const pageTitle = NAV_ITEMS.find(
-    ({ href }) => pathname === href || (href !== '/' && pathname.startsWith(`${href}/`))
-  )?.label ?? 'Overview'
-
-  return (
-    <header
-      className="hidden lg:flex justify-between items-center h-20 fixed top-0 z-40 px-8"
-      style={{ left: '16rem', right: 0 }}
-    >
-      <div className="flex items-center gap-x-2">
-        <h2 className="font-headline font-black text-xl tracking-tight text-[var(--primary)]">
-          {pageTitle}
-        </h2>
-      </div>
-    </header>
-  )
-}
-
-export default function BottomNav() {
+export default function Nav() {
   const pathname = usePathname()
   return (
     <>
+      <MobileHeader />
       <MobileNav pathname={pathname} />
       <DesktopSidebar pathname={pathname} />
-      <DesktopTopBar />
     </>
   )
 }

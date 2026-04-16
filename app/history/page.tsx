@@ -7,8 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   PlusCircle,
-  BookOpen,
-  User,
   SlidersHorizontal,
   ChevronDown,
   Check,
@@ -18,6 +16,7 @@ import { useExpenses } from '@/lib/hooks/use-expenses'
 import { useHustles } from '@/lib/hooks/use-hustles'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { MobileTransactionRow, DesktopTransactionRow, MobileTransactionRowSkeleton, DesktopTransactionRowSkeleton } from '@/components/transaction-row'
+import StatCard from '@/components/shared/stat-card'
 import type { IncomeEntry, ExpenseEntry } from '@/lib/types'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -203,7 +202,6 @@ export default function HistoryPage() {
   )
   const taxEst = taxableIncome * TAX_RATE_ESTIMATE
   const netProfit = totalIncome - totalExpenses - taxEst
-  const activeHustles = hustles.filter(h => h.is_active).length
 
   const isFiltered = tab !== 'all' || dateRange !== 'all' || !!hustleFilter
 
@@ -248,69 +246,36 @@ export default function HistoryPage() {
       {/* ══════════════════ MOBILE ══════════════════ */}
       <div className="lg:hidden pb-40">
 
-        {/* Sticky AppBar */}
-        <header
-          className="sticky top-0 z-20 flex justify-between items-center px-6 py-4"
-          style={{
-            background: 'rgba(251,249,243,0.92)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <BookOpen className="w-5 h-5 text-[var(--primary)]" strokeWidth={2} />
-            <h1 className="font-headline font-black text-xl tracking-tight text-[var(--primary)]">
-              HustleBooks
-            </h1>
-          </div>
-          <div className="w-10 h-10 rounded-2xl bg-[var(--surface-container-high)] flex items-center justify-center flex-shrink-0">
-            <User className="w-5 h-5 text-[var(--primary)]" strokeWidth={1.5} />
-          </div>
-        </header>
-
         <div className="px-4 pt-4 space-y-5">
 
           {/* ── Section 1: Summary ── */}
           <section className="grid grid-cols-2 gap-3">
-            <div
-              className="squircle relative overflow-hidden p-5 flex flex-col justify-between row-span-2"
-              style={{ backgroundColor: 'var(--primary-container)', minHeight: 160 }}
-            >
-              <div
-                className="absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-25"
-                style={{ backgroundColor: 'var(--secondary-container)', filter: 'blur(24px)' }}
-              />
-              <p className="font-label text-[9px] uppercase tracking-[0.08rem] text-white/60 relative z-10">
-                Net Profit
-              </p>
-              <div className="relative z-10">
-                <p className="font-headline font-black text-2xl leading-none text-white">
-                  {formatCurrency(netProfit, 'USD', true)}
-                </p>
-                <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-container)]" />
-                  <span className="font-label text-[9px] uppercase tracking-[0.06rem] text-white/70">
-                    {DATE_RANGE_LABELS[dateRange]}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="squircle bg-[var(--surface-container-low)] p-4 flex flex-col justify-between">
-              <p className="font-label text-[9px] uppercase tracking-[0.08rem] text-[var(--on-surface-variant)]">
-                Active Hustles
-              </p>
-              <p className="font-headline font-black text-3xl text-[var(--primary)]">{activeHustles}</p>
-            </div>
-
-            <div className="squircle bg-[var(--surface-container-low)] p-4 flex flex-col justify-between">
-              <p className="font-label text-[9px] uppercase tracking-[0.08rem] text-[var(--on-surface-variant)]">
-                Tax Reserve
-              </p>
-              <p className="font-headline font-bold text-lg text-[var(--primary)]">
-                {formatCurrency(taxEst, 'USD', true)}
-              </p>
-            </div>
+                      <StatCard
+            label="Net Profit"
+            value={formatCurrency(netProfit, 'USD', true)}
+            valueColor="var(--secondary)"
+            height="h-32"
+            loading={loading}
+          />
+          <StatCard
+            label="Total Income"
+            value={formatCurrency(totalIncome, 'USD', true)}
+            height="h-32"
+            loading={loading}
+          />
+          <StatCard
+            label="Total Expenses"
+            value={formatCurrency(totalExpenses, 'USD', true)}
+            valueColor="var(--expense)"
+            height="h-32"
+            loading={loading}
+          />
+          <StatCard
+            label="Tax Estimate"
+            value={formatCurrency(taxEst, 'USD', true)}
+            height="h-32"
+            loading={loading}
+          />
           </section>
 
           {/* ── Section 2: Search + Filters ── */}
@@ -453,15 +418,6 @@ export default function HistoryPage() {
           </section>
 
         </div>
-
-        {/* FAB */}
-        <Link
-          href="/log"
-          className="fixed bottom-28 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-[0_12px_32px_rgba(2,36,72,0.25)] z-30"
-          style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
-        >
-          <PlusCircle className="w-6 h-6 text-white" strokeWidth={1.5} />
-        </Link>
       </div>
 
       {/* ══════════════════ DESKTOP ══════════════════ */}
@@ -477,42 +433,36 @@ export default function HistoryPage() {
               History
             </h1>
           </div>
-          {!loading && (
-            <span
-              className="squircle px-5 py-2 font-label text-[10px] uppercase tracking-widest"
-              style={{ backgroundColor: 'var(--surface-container-low)', color: 'var(--on-surface-variant)' }}
-            >
-              {merged.length} {merged.length === 1 ? 'entry' : 'entries'}
-            </span>
-          )}
         </div>
 
         {/* ── Section 1: Summary ── */}
         <section className="grid grid-cols-4 gap-6 mb-8">
-          <div className="squircle bg-[var(--surface-container-low)] p-8 h-32 flex flex-col justify-between">
-            <span className="font-label text-[10px] font-bold tracking-[0.1rem] uppercase text-[var(--on-surface-variant)]">Net Profit</span>
-            <p className="font-headline font-black text-3xl" style={{ color: 'var(--secondary)' }}>
-              {formatCurrency(netProfit, 'USD', true)}
-            </p>
-          </div>
-          <div className="squircle bg-[var(--surface-container-low)] p-8 h-32 flex flex-col justify-between">
-            <span className="font-label text-[10px] font-bold tracking-[0.1rem] uppercase text-[var(--on-surface-variant)]">Total Income</span>
-            <p className="font-headline font-black text-3xl text-[var(--primary)]">
-              {formatCurrency(totalIncome, 'USD', true)}
-            </p>
-          </div>
-          <div className="squircle bg-[var(--surface-container-low)] p-8 h-32 flex flex-col justify-between">
-            <span className="font-label text-[10px] font-bold tracking-[0.1rem] uppercase text-[var(--on-surface-variant)]">Total Expenses</span>
-            <p className="font-headline font-black text-3xl" style={{ color: 'var(--expense)' }}>
-              {formatCurrency(totalExpenses, 'USD', true)}
-            </p>
-          </div>
-          <div className="squircle bg-[var(--surface-container-low)] p-8 h-32 flex flex-col justify-between">
-            <span className="font-label text-[10px] font-bold tracking-[0.1rem] uppercase text-[var(--on-surface-variant)]">Tax Estimate</span>
-            <p className="font-headline font-black text-3xl text-[var(--primary)]">
-              {formatCurrency(taxEst, 'USD', true)}
-            </p>
-          </div>
+          <StatCard
+            label="Net Profit"
+            value={formatCurrency(netProfit, 'USD', true)}
+            valueColor="var(--secondary)"
+            height="h-32"
+            loading={loading}
+          />
+          <StatCard
+            label="Total Income"
+            value={formatCurrency(totalIncome, 'USD', true)}
+            height="h-32"
+            loading={loading}
+          />
+          <StatCard
+            label="Total Expenses"
+            value={formatCurrency(totalExpenses, 'USD', true)}
+            valueColor="var(--expense)"
+            height="h-32"
+            loading={loading}
+          />
+          <StatCard
+            label="Tax Estimate"
+            value={formatCurrency(taxEst, 'USD', true)}
+            height="h-32"
+            loading={loading}
+          />
         </section>
 
         {/* ── Section 2: Unified search + filter card ── */}
