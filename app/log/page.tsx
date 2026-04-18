@@ -73,7 +73,7 @@ export default function LogPage() {
       .eq('date', expenseDate)
       .gt('mileage', 0)
       .limit(1)
-      .then(({ data }) => {
+      .then(({ data }: { data: { id: string }[] | null }) => {
         if (!cancelled) setHasMileageOnDate((data?.length ?? 0) > 0)
       })
     return () => { cancelled = true }
