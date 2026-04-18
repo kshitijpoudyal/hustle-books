@@ -55,7 +55,6 @@ export default function StatCards({
       trendIcon: ArrowUp,
       trendColor: 'var(--secondary)',
       trendText: periodLabel,
-      wide: true,
       height: 'h-44',
     },
     {
@@ -67,7 +66,6 @@ export default function StatCards({
       trendIcon: ArrowDown,
       trendColor: 'var(--expense)',
       trendText: periodLabel,
-      wide: true,
       height: 'h-44',
     },
     ...(totalCogs !== 0 ? [{
@@ -79,7 +77,6 @@ export default function StatCards({
       trendIcon: ShoppingBag,
       trendColor: 'var(--expense)',
       trendText: 'COGS',
-      wide: true,
       height: 'h-44',
     }] : []),
     {
@@ -91,15 +88,16 @@ export default function StatCards({
       trendIcon: Clock,
       trendColor: 'var(--on-surface-variant)',
       trendText: 'Set Aside',
-      wide: true,
       height: 'h-44',
       href: '/tax',
     },
   ]
 
-  const colCount = cards.length
+  const lgCols: Record<number, string> = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5', 6: 'lg:grid-cols-6' }
+  const lgColClass = lgCols[cards.length] ?? 'lg:grid-cols-4'
+
   return (
-    <div className={`grid grid-cols-2 lg:grid-cols-${colCount} gap-4 lg:gap-6`}>
+    <div className={`grid grid-cols-2 ${lgColClass} gap-4 lg:gap-6`}>
       {cards.map(({ key, ...card }) => (
         <StatCard key={key} {...card} loading={loading} />
       ))}

@@ -286,7 +286,7 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
   if (!hustle) return null
 
   const taxSetAside = calcTaxSetAside(stats.taxableIncome, FALLBACK_TAX_RATE)
-  const netProfit = calcNetProfit(stats.income, stats.expenses, includeTaxInProfit ? FALLBACK_TAX_RATE : 0, 0, stats.taxableIncome, includeDeprInProfit ? stats.totalDepreciation : 0)
+  const netProfit = calcNetProfit(stats.income, stats.expenses, includeTaxInProfit ? FALLBACK_TAX_RATE : 0, stats.totalCogs, stats.taxableIncome, includeDeprInProfit ? stats.totalDepreciation : 0)
   const todayStr = new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
 
   return (
@@ -401,8 +401,8 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
                 label="Depreciation"
                 value={formatCurrency(stats.totalDepreciation)}
                 sub={`${formatMileage(stats.totalMileage)} mi`}
-                wide
-                height="h-36"
+                mobileAspectSquare
+                height="h-40"
               />
             )}
           </section>
@@ -593,8 +593,10 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
             const showCogs = hustle.category === 'reselling_and_flipping' && stats.totalCogs !== 0
             const showDepr = stats.totalMileage > 0
             const cols = 1 + (showIncome ? 1 : 0) + (showExpenses ? 1 : 0) + (showTax ? 1 : 0) + (showCogs ? 1 : 0) + (showDepr ? 1 : 0)
+            const lgCols: Record<number, string> = { 1: 'lg:grid-cols-1', 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5', 6: 'lg:grid-cols-6' }
+            const lgColClass = lgCols[cols] ?? 'lg:grid-cols-4'
             return (
-              <section className={`grid gap-6 mb-12 grid-cols-${cols}`}>
+              <section className={`grid gap-6 mb-12 grid-cols-2 ${lgColClass}`}>
                 <StatCard label="Net Profit" value={formatCurrency(netProfit)} valueColor="var(--secondary)" height="h-48" className="p-8" />
                 {showIncome && <StatCard label="Total Income" value={formatCurrency(stats.income)} height="h-48" className="p-8" />}
                 {showExpenses && <StatCard label="Total Expenses" value={formatCurrency(stats.expenses)} valueColor="var(--expense)" height="h-48" className="p-8" />}
