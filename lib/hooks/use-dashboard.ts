@@ -203,8 +203,8 @@ export function useDashboard(period: Period = 'month', customRange?: { start: st
           supabase.from('expenses').select('*, hustle:hustles(id, name, color, icon)').order('date', { ascending: false }).order('created_at', { ascending: false }).limit(5),
         ])
 
-        const recentIncome: TransactionEntry[] = (recentIncomeRes.data ?? []).map(r => ({ ...r, entry_type: 'income' as const }))
-        const recentExpenses: TransactionEntry[] = (recentExpensesRes.data ?? []).map(r => ({ ...r, entry_type: 'expense' as const }))
+        const recentIncome: TransactionEntry[] = (recentIncomeRes.data ?? []).map((r: IncomeEntry) => ({ ...r, entry_type: 'income' as const }))
+        const recentExpenses: TransactionEntry[] = (recentExpensesRes.data ?? []).map((r: ExpenseEntry) => ({ ...r, entry_type: 'expense' as const }))
         const recentActivity = [...recentIncome, ...recentExpenses]
           .sort((a, b) => b.date !== a.date ? b.date.localeCompare(a.date) : b.created_at.localeCompare(a.created_at))
           .slice(0, 5)

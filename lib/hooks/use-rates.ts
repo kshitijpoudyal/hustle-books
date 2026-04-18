@@ -23,7 +23,7 @@ export function useRates() {
     if (!snaps) { setLoading(false); return }
 
     // Get linked entry counts
-    const ids = snaps.map(s => s.id)
+    const ids = snaps.map((s: RateSnapshot) => s.id)
     const { data: counts } = await supabase
       .from('income')
       .select('rate_snapshot_id')
@@ -36,7 +36,7 @@ export function useRates() {
       }
     }
 
-    setSnapshots(snaps.map(s => ({ ...s, linked_entry_count: countMap[s.id] ?? 0 })))
+    setSnapshots(snaps.map((s: RateSnapshot) => ({ ...s, linked_entry_count: countMap[s.id] ?? 0 })))
     setLoading(false)
   }, [])
 
