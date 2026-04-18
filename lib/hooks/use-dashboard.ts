@@ -273,6 +273,7 @@ export function useDashboard(period: Period = 'month', customRange?: { start: st
     totalIncome,
     taxableIncome,
     totalExpenses,
+    totalCogs,
     netProfit,
     taxSetAside,
     totalDepreciation,

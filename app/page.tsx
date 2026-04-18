@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const {
     totalIncome,
     totalExpenses,
+    totalCogs,
     netProfit,
     taxSetAside,
     totalMileage,
@@ -65,6 +66,7 @@ export default function DashboardPage() {
           <StatCards
             totalIncome={totalIncome}
             totalExpenses={totalExpenses}
+            totalCogs={totalCogs}
             netProfit={netProfit}
             taxSetAside={taxSetAside}
             totalMileage={totalMileage}
@@ -126,6 +128,7 @@ export default function DashboardPage() {
           <StatCards
             totalIncome={totalIncome}
             totalExpenses={totalExpenses}
+            totalCogs={totalCogs}
             netProfit={netProfit}
             taxSetAside={taxSetAside}
             totalMileage={totalMileage}
