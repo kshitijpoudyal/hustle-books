@@ -154,28 +154,39 @@ async function main() {
   const deprCost = (miles) => parseFloat((miles * 0.08).toFixed(2))
 
   const incomeRows = [
-    // DoorDash — last 30 days
+    // ── DoorDash — every entry has mileage ──────────────────────────────────
     { user_id: userId, hustle_id: ddId, amount: 142.50, description: 'DoorDash weekend rush', mileage: 87, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(87), depreciation_cost_at_log: deprCost(87), is_taxable: true, date: ago(2) },
-    { user_id: userId, hustle_id: ddId, amount: 98.75, description: 'DoorDash dinner shift', mileage: 61, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(61), depreciation_cost_at_log: deprCost(61), is_taxable: true, date: ago(5) },
-    { user_id: userId, hustle_id: ddId, amount: 167.20, description: 'DoorDash Friday + Saturday', mileage: 104, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(104), depreciation_cost_at_log: deprCost(104), is_taxable: true, date: ago(9) },
-    { user_id: userId, hustle_id: ddId, amount: 85.00, description: 'Lunch rush', mileage: 52, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(52), depreciation_cost_at_log: deprCost(52), is_taxable: true, date: ago(14) },
-    { user_id: userId, hustle_id: ddId, amount: 210.00, description: 'Holiday weekend', mileage: 130, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(130), depreciation_cost_at_log: deprCost(130), is_taxable: true, date: ago(21) },
-    { user_id: userId, hustle_id: ddId, amount: 122.50, description: 'Standard week', mileage: 76, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(76), depreciation_cost_at_log: deprCost(76), is_taxable: true, date: ago(28) },
-    // DoorDash — older
-    { user_id: userId, hustle_id: ddId, amount: 155.00, description: 'DoorDash delivery', mileage: 96, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(96), depreciation_cost_at_log: deprCost(96), is_taxable: true, date: ago(45) },
-    { user_id: userId, hustle_id: ddId, amount: 190.00, description: 'Big week', mileage: 118, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(118), depreciation_cost_at_log: deprCost(118), is_taxable: true, date: ago(60) },
-    // eBay Flipping
-    { user_id: userId, hustle_id: ebayId, amount: 340.00, description: 'Vintage camera lot', mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 120.00, is_taxable: true, date: ago(3) },
-    { user_id: userId, hustle_id: ebayId, amount: 89.99, description: 'Nintendo DS bundle', mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 25.00, is_taxable: true, date: ago(8) },
-    { user_id: userId, hustle_id: ebayId, amount: 220.00, description: 'Thrift store electronics', mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 65.00, is_taxable: true, date: ago(16) },
-    { user_id: userId, hustle_id: ebayId, amount: 155.00, description: 'Camera lenses', mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 50.00, is_taxable: true, date: ago(33) },
-    { user_id: userId, hustle_id: ebayId, amount: 475.00, description: 'MacBook Air refurb', mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 280.00, is_taxable: true, date: ago(55) },
-    // Freelance Design
-    { user_id: userId, hustle_id: flId, amount: 1200.00, description: 'Logo + brand guide', mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, is_taxable: true, date: ago(4) },
-    { user_id: userId, hustle_id: flId, amount: 800.00, description: 'Website redesign — 50% deposit', mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, is_taxable: true, date: ago(12) },
-    { user_id: userId, hustle_id: flId, amount: 800.00, description: 'Website redesign — final payment', mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, is_taxable: true, date: ago(1) },
-    { user_id: userId, hustle_id: flId, amount: 450.00, description: 'Social media graphics pack', mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, is_taxable: true, date: ago(25) },
-    { user_id: userId, hustle_id: flId, amount: 2500.00, description: 'App UI design project', mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, is_taxable: true, date: ago(50) },
+    { user_id: userId, hustle_id: ddId, amount: 98.75,  description: 'Dinner shift',          mileage: 61, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(61), depreciation_cost_at_log: deprCost(61), is_taxable: true, date: ago(5) },
+    { user_id: userId, hustle_id: ddId, amount: 167.20, description: 'Fri + Sat double shift', mileage: 104, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(104), depreciation_cost_at_log: deprCost(104), is_taxable: true, date: ago(9) },
+    { user_id: userId, hustle_id: ddId, amount: 85.00,  description: 'Lunch rush',             mileage: 52, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(52), depreciation_cost_at_log: deprCost(52), is_taxable: true, date: ago(13) },
+    { user_id: userId, hustle_id: ddId, amount: 210.00, description: 'Holiday weekend',        mileage: 130, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(130), depreciation_cost_at_log: deprCost(130), is_taxable: true, date: ago(17) },
+    { user_id: userId, hustle_id: ddId, amount: 122.50, description: 'Standard weeknight',     mileage: 76, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(76), depreciation_cost_at_log: deprCost(76), is_taxable: true, date: ago(21) },
+    { user_id: userId, hustle_id: ddId, amount: 175.00, description: 'Saturday marathon',      mileage: 109, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(109), depreciation_cost_at_log: deprCost(109), is_taxable: true, date: ago(26) },
+    { user_id: userId, hustle_id: ddId, amount: 93.25,  description: 'Short evening run',      mileage: 58, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(58), depreciation_cost_at_log: deprCost(58), is_taxable: true, date: ago(30) },
+    { user_id: userId, hustle_id: ddId, amount: 155.00, description: 'Mid-week grind',         mileage: 96, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(96), depreciation_cost_at_log: deprCost(96), is_taxable: true, date: ago(38) },
+    { user_id: userId, hustle_id: ddId, amount: 190.00, description: 'Big week',               mileage: 118, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(118), depreciation_cost_at_log: deprCost(118), is_taxable: true, date: ago(45) },
+    { user_id: userId, hustle_id: ddId, amount: 112.75, description: 'Rainy day bonus surge',  mileage: 70, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(70), depreciation_cost_at_log: deprCost(70), is_taxable: true, date: ago(52) },
+    { user_id: userId, hustle_id: ddId, amount: 198.50, description: 'Super Bowl weekend',     mileage: 124, rate_snapshot_id: snapshotId, fuel_cost_at_log: fuelCost(124), depreciation_cost_at_log: deprCost(124), is_taxable: true, date: ago(60) },
+
+    // ── eBay Flipping — all with COGS ───────────────────────────────────────
+    { user_id: userId, hustle_id: ebayId, amount: 340.00, description: 'Vintage camera lot',          mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 120.00, is_taxable: true, date: ago(3) },
+    { user_id: userId, hustle_id: ebayId, amount: 89.99,  description: 'Nintendo DS bundle',          mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 25.00,  is_taxable: true, date: ago(7) },
+    { user_id: userId, hustle_id: ebayId, amount: 220.00, description: 'Thrift store electronics',   mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 65.00,  is_taxable: true, date: ago(11) },
+    { user_id: userId, hustle_id: ebayId, amount: 155.00, description: 'Canon lens lot',             mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 50.00,  is_taxable: true, date: ago(16) },
+    { user_id: userId, hustle_id: ebayId, amount: 475.00, description: 'MacBook Air refurb',         mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 280.00, is_taxable: true, date: ago(22) },
+    { user_id: userId, hustle_id: ebayId, amount: 62.00,  description: 'Vintage denim jacket',       mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 12.00,  is_taxable: true, date: ago(27) },
+    { user_id: userId, hustle_id: ebayId, amount: 310.00, description: 'Sony headphones (x3)',       mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 135.00, is_taxable: true, date: ago(34) },
+    { user_id: userId, hustle_id: ebayId, amount: 145.00, description: 'Polaroid camera + film',     mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 40.00,  is_taxable: true, date: ago(40) },
+    { user_id: userId, hustle_id: ebayId, amount: 780.00, description: 'iPad Pro 2022 lot (2 units)',mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 480.00, is_taxable: true, date: ago(48) },
+    { user_id: userId, hustle_id: ebayId, amount: 95.00,  description: 'Air Jordan retro pair',      mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, cogs: 45.00,  is_taxable: true, date: ago(55) },
+
+    // ── Freelance Design ─────────────────────────────────────────────────────
+    { user_id: userId, hustle_id: flId, amount: 1200.00, description: 'Logo + brand guide',              mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, is_taxable: true, date: ago(4) },
+    { user_id: userId, hustle_id: flId, amount: 800.00,  description: 'Website redesign — 50% deposit', mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, is_taxable: true, date: ago(12) },
+    { user_id: userId, hustle_id: flId, amount: 800.00,  description: 'Website redesign — final',       mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, is_taxable: true, date: ago(1) },
+    { user_id: userId, hustle_id: flId, amount: 450.00,  description: 'Social media graphics pack',     mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, is_taxable: true, date: ago(25) },
+    { user_id: userId, hustle_id: flId, amount: 2500.00, description: 'App UI design project',          mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, is_taxable: true, date: ago(50) },
+    { user_id: userId, hustle_id: flId, amount: 350.00,  description: 'Pitch deck design',              mileage: null, rate_snapshot_id: null, fuel_cost_at_log: null, depreciation_cost_at_log: null, is_taxable: true, date: ago(33) },
   ]
 
   await req('/rest/v1/income', {
@@ -189,19 +200,27 @@ async function main() {
   console.log('→ Seeding expense entries…')
   const expenseRows = [
     // DoorDash
-    { user_id: userId, hustle_id: ddId, amount: 68.40, category: 'fuel', description: 'Gas fill-up', is_recurring: false, date: ago(3) },
-    { user_id: userId, hustle_id: ddId, amount: 14.99, category: 'phone', description: 'Phone mount', is_recurring: false, date: ago(10) },
-    { user_id: userId, hustle_id: ddId, amount: 12.50, category: 'fees', description: 'Insulated bag', is_recurring: false, date: ago(20) },
-    { user_id: userId, hustle_id: ddId, amount: 72.00, category: 'maintenance', description: 'Oil change', is_recurring: false, date: ago(35) },
-    // eBay
-    { user_id: userId, hustle_id: ebayId, amount: 29.95, category: 'fees', description: 'eBay final value fees', is_recurring: false, date: ago(5) },
-    { user_id: userId, hustle_id: ebayId, amount: 18.40, category: 'supplies', description: 'Bubble wrap + boxes', is_recurring: false, date: ago(15) },
-    { user_id: userId, hustle_id: ebayId, amount: 22.75, category: 'fees', description: 'PayPal processing', is_recurring: false, date: ago(30) },
-    // Freelance
+    { user_id: userId, hustle_id: ddId, amount: 68.40,  category: 'fuel',        description: 'Gas fill-up',           is_recurring: false, date: ago(3) },
+    { user_id: userId, hustle_id: ddId, amount: 71.20,  category: 'fuel',        description: 'Gas fill-up',           is_recurring: false, date: ago(18) },
+    { user_id: userId, hustle_id: ddId, amount: 65.80,  category: 'fuel',        description: 'Gas fill-up',           is_recurring: false, date: ago(35) },
+    { user_id: userId, hustle_id: ddId, amount: 14.99,  category: 'phone',       description: 'Phone mount',           is_recurring: false, date: ago(10) },
+    { user_id: userId, hustle_id: ddId, amount: 12.50,  category: 'supplies',    description: 'Insulated delivery bag',is_recurring: false, date: ago(20) },
+    { user_id: userId, hustle_id: ddId, amount: 72.00,  category: 'maintenance', description: 'Oil change',            is_recurring: false, date: ago(40) },
+    { user_id: userId, hustle_id: ddId, amount: 18.00,  category: 'maintenance', description: 'Car wash',              is_recurring: false, date: ago(25) },
+    // eBay Flipping
+    { user_id: userId, hustle_id: ebayId, amount: 29.95, category: 'fees',     description: 'eBay final value fees',   is_recurring: false, date: ago(5) },
+    { user_id: userId, hustle_id: ebayId, amount: 41.20, category: 'fees',     description: 'eBay fees — MacBook lot', is_recurring: false, date: ago(23) },
+    { user_id: userId, hustle_id: ebayId, amount: 18.40, category: 'supplies', description: 'Bubble wrap + boxes',     is_recurring: false, date: ago(15) },
+    { user_id: userId, hustle_id: ebayId, amount: 24.50, category: 'supplies', description: 'Packing tape + poly bags',is_recurring: false, date: ago(36) },
+    { user_id: userId, hustle_id: ebayId, amount: 22.75, category: 'fees',     description: 'PayPal processing fees',  is_recurring: false, date: ago(30) },
+    { user_id: userId, hustle_id: ebayId, amount: 15.00, category: 'other',    description: 'Thrift store gas trip',   is_recurring: false, date: ago(42) },
+    // Freelance Design
     { user_id: userId, hustle_id: flId, amount: 54.99, category: 'other', description: 'Adobe CC monthly', is_recurring: true, date: ago(7) },
-    { user_id: userId, hustle_id: flId, amount: 12.00, category: 'other', description: 'Figma pro', is_recurring: true, date: ago(7) },
-    // General
+    { user_id: userId, hustle_id: flId, amount: 54.99, category: 'other', description: 'Adobe CC monthly', is_recurring: true, date: ago(37) },
+    { user_id: userId, hustle_id: flId, amount: 12.00, category: 'other', description: 'Figma pro',        is_recurring: true, date: ago(7) },
+    // General / shared
     { user_id: userId, hustle_id: null, amount: 120.00, category: 'phone', description: 'Phone bill — business use', is_recurring: true, date: ago(6) },
+    { user_id: userId, hustle_id: null, amount: 120.00, category: 'phone', description: 'Phone bill — business use', is_recurring: true, date: ago(36) },
   ]
 
   await req('/rest/v1/expenses', {
