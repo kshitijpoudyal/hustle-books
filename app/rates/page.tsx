@@ -529,7 +529,7 @@ function RatesPageInner() {
       .from('income')
       .select('id', { count: 'exact', head: true })
       .gt('mileage', 0)
-      .then(({ count }) => setMileageEntryCount(count ?? 0))
+      .then(({ count }: { count: number | null }) => setMileageEntryCount(count ?? 0))
   }, [loading])
 
   async function handleHistoricalApply(snapshotId: string, method: 'actual' | 'irs') {
@@ -549,7 +549,7 @@ function RatesPageInner() {
       return
     }
 
-    const updates = data.map(row => {
+    const updates = data.map((row: { id: string; mileage: number | null }) => {
       const miles = Number(row.mileage)
       const fuelCost = method === 'irs'
         ? miles * snap.irs_rate
