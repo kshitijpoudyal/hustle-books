@@ -3,45 +3,35 @@
 import { use, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, MoreVertical, Pencil, Trash2, Zap, Archive } from 'lucide-react'
+import { MoreVertical, Pencil, Trash2, Zap, Archive } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatMileage } from '@/lib/utils/formatters'
+import { calcTaxSetAside, calcNetProfit } from '@/lib/utils/calculations'
 import { HUSTLE_COLORS, HUSTLE_ICONS, HUSTLE_CATEGORIES } from '@/lib/utils/constants'
 import { HustleIcon } from '@/lib/utils/hustle-icons'
 import { MobileTransactionRow, DesktopTransactionRow, MobileTransactionRowSkeleton } from '@/components/transaction-row'
 import StatCard from '@/components/shared/stat-card'
+import { useUserSettings } from '@/lib/context/user-settings-context'
 import type { HustleCategory } from '@/lib/utils/constants'
 import { toast } from 'sonner'
 import type { Hustle, IncomeEntry, ExpenseEntry } from '@/lib/types'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+// Fallback tax rate (25%) used when no rate snapshot is available on this page
+const FALLBACK_TAX_RATE = 25
+
 type TaggedIncome = IncomeEntry & { entry_type: 'income' }
 type TaggedExpense = ExpenseEntry & { entry_type: 'expense' }
 type AnyEntry = TaggedIncome | TaggedExpense
 
 interface HustleStats {
-  monthIncome: number
-  monthTaxableIncome: number
-  monthDepreciation: number
-  monthExpenses: number
-  allTimeIncome: number
-  allTimeTaxableIncome: number
-  allTimeExpenses: number
+  income: number
+  taxableIncome: number
+  expenses: number
+  totalCogs: number
   totalDepreciation: number
   totalMileage: number
-}
-
-// ── Date helpers ──────────────────────────────────────────────────────────────
-
-function currentMonthRange(): { from: string; to: string } {
-  const today = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-  return {
-    from: fmt(new Date(today.getFullYear(), today.getMonth(), 1)),
-    to: fmt(today),
-  }
 }
 
 // ── Category picker ───────────────────────────────────────────────────────────
@@ -174,12 +164,11 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
   const [hustle, setHustle] = useState<Hustle | null>(null)
   const [entries, setEntries] = useState<AnyEntry[]>([])
   const [stats, setStats] = useState<HustleStats>({
-    monthIncome: 0, monthTaxableIncome: 0, monthDepreciation: 0, monthExpenses: 0,
-    allTimeIncome: 0, allTimeTaxableIncome: 0, allTimeExpenses: 0,
+    income: 0, taxableIncome: 0, expenses: 0, totalCogs: 0,
     totalDepreciation: 0, totalMileage: 0,
   })
   const [loading, setLoading] = useState(true)
-  const [includeDeprInProfit, setIncludeDeprInProfit] = useState(true)
+  const { includeDeprInProfit, includeTaxInProfit } = useUserSettings()
 
   // Edit state
   const [editName, setEditName] = useState('')
@@ -202,15 +191,11 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
 
   const load = useCallback(async () => {
     const supabase = createClient()
-    const { from, to } = currentMonthRange()
 
-    const [hustleRes, incomeRes, expensesRes, monthIncRes, monthExpRes, profileRes] = await Promise.all([
+    const [hustleRes, incomeRes, expensesRes] = await Promise.all([
       supabase.from('hustles').select('*').eq('id', id).single(),
       supabase.from('income').select('*').eq('hustle_id', id).order('date', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('expenses').select('*').eq('hustle_id', id).order('date', { ascending: false }).order('created_at', { ascending: false }),
-      supabase.from('income').select('amount, is_taxable, depreciation_cost_at_log').eq('hustle_id', id).gte('date', from).lte('date', to),
-      supabase.from('expenses').select('amount').eq('hustle_id', id).gte('date', from).lte('date', to),
-      supabase.from('profiles').select('settings').single(),
     ])
 
     if (!hustleRes.data) { router.push('/hustles'); return }
@@ -232,20 +217,14 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
 
     setEntries(all)
 
-    const monthRows = monthIncRes.data ?? []
-    const monthInc = monthRows.reduce((s, r) => s + Number(r.amount), 0)
-    const monthTaxableInc = monthRows.filter(r => r.is_taxable).reduce((s, r) => s + Number(r.amount), 0)
-    const monthDepr = monthRows.reduce((s, r) => s + Number((r as { depreciation_cost_at_log?: number | null }).depreciation_cost_at_log ?? 0), 0)
-    const monthExp = (monthExpRes.data ?? []).reduce((s, r) => s + Number(r.amount), 0)
-    const allTimeInc = incomes.reduce((s, e) => s + Number(e.amount), 0)
-    const allTimeTaxableInc = incomes.filter(e => e.is_taxable).reduce((s, e) => s + Number(e.amount), 0)
-    const allTimeExp = expenses.reduce((s, e) => s + Number(e.amount), 0)
+    const totalInc = incomes.reduce((s, e) => s + Number(e.amount), 0)
+    const totalTaxableInc = incomes.filter(e => e.is_taxable).reduce((s, e) => s + Number(e.amount), 0)
+    const totalExp = expenses.reduce((s, e) => s + Number(e.amount), 0)
+    const totalCogs = incomes.reduce((s, e) => s + Number(e.cogs ?? 0), 0)
     const totalDepr = incomes.reduce((s, e) => s + Number(e.depreciation_cost_at_log ?? 0), 0)
     const totalMiles = incomes.reduce((s, e) => s + Number(e.mileage ?? 0), 0)
 
-    setStats({ monthIncome: monthInc, monthTaxableIncome: monthTaxableInc, monthDepreciation: monthDepr, monthExpenses: monthExp, allTimeIncome: allTimeInc, allTimeTaxableIncome: allTimeTaxableInc, allTimeExpenses: allTimeExp, totalDepreciation: totalDepr, totalMileage: totalMiles })
-    const profileSettings = profileRes.data?.settings as { include_depreciation_in_profit?: boolean } | null
-    setIncludeDeprInProfit(profileSettings?.include_depreciation_in_profit ?? true)
+    setStats({ income: totalInc, taxableIncome: totalTaxableInc, expenses: totalExp, totalCogs, totalDepreciation: totalDepr, totalMileage: totalMiles })
     setLoading(false)
   }, [id, router])
 
@@ -306,9 +285,8 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
 
   if (!hustle) return null
 
-  const taxSetAside = stats.monthTaxableIncome * 0.25
-  const allTimeTax = stats.allTimeTaxableIncome * 0.25
-  const allTimeNetProfit = stats.allTimeIncome - stats.allTimeExpenses - allTimeTax - (includeDeprInProfit ? stats.totalDepreciation : 0)
+  const taxSetAside = calcTaxSetAside(stats.taxableIncome, FALLBACK_TAX_RATE)
+  const netProfit = calcNetProfit(stats.income, stats.expenses, includeTaxInProfit ? FALLBACK_TAX_RATE : 0, 0, stats.taxableIncome, includeDeprInProfit ? stats.totalDepreciation : 0)
   const todayStr = new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
 
   return (
@@ -379,30 +357,45 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
           <section className="grid grid-cols-2 gap-3 mb-12">
             <StatCard
               label="Net Profit"
-              value={formatCurrency(allTimeNetProfit)}
+              value={formatCurrency(netProfit)}
               valueColor="var(--secondary)"
               mobileAspectSquare
               height="h-40"
             />
-            <StatCard
-              label="Total Income"
-              value={formatCurrency(stats.allTimeIncome)}
-              mobileAspectSquare
-              height="h-40"
-            />
-            <StatCard
-              label="Total Expenses"
-              value={formatCurrency(stats.allTimeExpenses)}
-              valueColor="var(--expense)"
-              mobileAspectSquare
-              height="h-40"
-            />
-            <StatCard
-              label="Est. Taxes"
-              value={formatCurrency(allTimeTax)}
-              mobileAspectSquare
-              height="h-40"
-            />
+            {stats.income !== 0 && (
+              <StatCard
+                label="Total Income"
+                value={formatCurrency(stats.income)}
+                mobileAspectSquare
+                height="h-40"
+              />
+            )}
+            {stats.expenses !== 0 && (
+              <StatCard
+                label="Total Expenses"
+                value={formatCurrency(stats.expenses)}
+                valueColor="var(--expense)"
+                mobileAspectSquare
+                height="h-40"
+              />
+            )}
+            {taxSetAside !== 0 && (
+              <StatCard
+                label="Est. Taxes"
+                value={formatCurrency(taxSetAside)}
+                mobileAspectSquare
+                height="h-40"
+              />
+            )}
+            {hustle.category === 'reselling_and_flipping' && stats.totalCogs !== 0 && (
+              <StatCard
+                label="Cost of Goods"
+                value={formatCurrency(stats.totalCogs)}
+                valueColor="var(--expense)"
+                mobileAspectSquare
+                height="h-40"
+              />
+            )}
             {stats.totalMileage > 0 && (
               <StatCard
                 label="Depreciation"
@@ -418,8 +411,7 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
             {/* Recent Activity */}
             <section>
               <div className="flex justify-between items-center mb-8">
-                <h2 className="text-3xl font-black text-[var(--primary)] tracking-tight font-headline">Recent Activity</h2>
-                <span className="font-label text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)]">All Time</span>
+                <h2 className="text-3xl font-black text-[var(--primary)] tracking-tight font-headline">All Transactions</h2>
               </div>
 
               {entries.length === 0 ? (
@@ -594,43 +586,24 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
           </header>
 
           {/* Financial Overview */}
-          <section className={`grid gap-6 mb-12 ${stats.totalMileage > 0 ? 'grid-cols-5' : 'grid-cols-4'}`}>
-            <StatCard
-              label="Net Profit"
-              value={formatCurrency(allTimeNetProfit)}
-              valueColor="var(--secondary)"
-              height="h-48"
-              className="p-8"
-            />
-            <StatCard
-              label="Total Income"
-              value={formatCurrency(stats.allTimeIncome)}
-              height="h-48"
-              className="p-8"
-            />
-            <StatCard
-              label="Total Expenses"
-              value={formatCurrency(stats.allTimeExpenses)}
-              valueColor="var(--expense)"
-              height="h-48"
-              className="p-8"
-            />
-            <StatCard
-              label="Estimated Taxes"
-              value={formatCurrency(allTimeTax)}
-              height="h-48"
-              className="p-8"
-            />
-            {stats.totalMileage > 0 && (
-              <StatCard
-                label="Depreciation"
-                value={formatCurrency(stats.totalDepreciation)}
-                sub={`${formatMileage(stats.totalMileage)} mi`}
-                height="h-48"
-                className="p-8"
-              />
-            )}
-          </section>
+          {(() => {
+            const showIncome = stats.income !== 0
+            const showExpenses = stats.expenses !== 0
+            const showTax = taxSetAside !== 0
+            const showCogs = hustle.category === 'reselling_and_flipping' && stats.totalCogs !== 0
+            const showDepr = stats.totalMileage > 0
+            const cols = 1 + (showIncome ? 1 : 0) + (showExpenses ? 1 : 0) + (showTax ? 1 : 0) + (showCogs ? 1 : 0) + (showDepr ? 1 : 0)
+            return (
+              <section className={`grid gap-6 mb-12 grid-cols-${cols}`}>
+                <StatCard label="Net Profit" value={formatCurrency(netProfit)} valueColor="var(--secondary)" height="h-48" className="p-8" />
+                {showIncome && <StatCard label="Total Income" value={formatCurrency(stats.income)} height="h-48" className="p-8" />}
+                {showExpenses && <StatCard label="Total Expenses" value={formatCurrency(stats.expenses)} valueColor="var(--expense)" height="h-48" className="p-8" />}
+                {showTax && <StatCard label="Estimated Taxes" value={formatCurrency(taxSetAside)} height="h-48" className="p-8" />}
+                {showCogs && <StatCard label="Cost of Goods" value={formatCurrency(stats.totalCogs)} valueColor="var(--expense)" height="h-48" className="p-8" />}
+                {showDepr && <StatCard label="Depreciation" value={formatCurrency(stats.totalDepreciation)} sub={`${formatMileage(stats.totalMileage)} mi`} height="h-48" className="p-8" />}
+              </section>
+            )
+          })()}
 
           {/* 12-col grid: Activity + Sidebar */}
           <div className="grid grid-cols-12 gap-8 items-start">
@@ -638,14 +611,7 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
             {/* Recent Activity — 8-col */}
             <section className="col-span-8 bg-[var(--surface-container-low)] squircle p-8">
               <div className="flex justify-between items-center mb-10">
-                <h3 className="font-headline text-2xl font-bold text-[var(--primary)]">Recent Activity</h3>
-                <Link
-                  href="/history"
-                  className="px-6 py-2 rounded-full font-label text-[10px] font-bold tracking-widest hover:bg-[var(--surface-container-highest)] transition-colors"
-                  style={{ backgroundColor: 'var(--surface-container-high)', color: 'var(--primary)' }}
-                >
-                  VIEW ALL
-                </Link>
+                <h3 className="font-headline text-2xl font-bold text-[var(--primary)]">All Transactions</h3>
               </div>
 
               {entries.length === 0 ? (
@@ -683,8 +649,8 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
                     Growth Pulse
                   </span>
                   <h4 className="text-3xl font-black text-white leading-tight">
-                    {allTimeNetProfit >= 0
-                      ? <>{formatCurrency(allTimeNetProfit, 'USD', true)} profit<br />all time.</>
+                    {netProfit >= 0
+                      ? <>{formatCurrency(netProfit, 'USD', true)} profit<br />all time.</>
                       : <>Keep going!<br />You got this.</>}
                   </h4>
                   <p className="text-white/70 text-sm mt-3 font-medium">

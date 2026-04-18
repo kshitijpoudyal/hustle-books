@@ -15,6 +15,7 @@ import { useIncome } from '@/lib/hooks/use-income'
 import { useExpenses } from '@/lib/hooks/use-expenses'
 import { useHustles } from '@/lib/hooks/use-hustles'
 import { formatCurrency } from '@/lib/utils/formatters'
+import { calcTaxSetAside, calcNetProfit } from '@/lib/utils/calculations'
 import { MobileTransactionRow, DesktopTransactionRow, MobileTransactionRowSkeleton, DesktopTransactionRowSkeleton } from '@/components/transaction-row'
 import StatCard from '@/components/shared/stat-card'
 import type { IncomeEntry, ExpenseEntry } from '@/lib/types'
@@ -26,9 +27,10 @@ type TaggedExpense = ExpenseEntry & { entry_type: 'expense' }
 type AnyEntry = TaggedIncome | TaggedExpense
 
 type TabType = 'all' | 'income' | 'expenses'
-type DateRange = 'week' | 'month' | 'year' | 'all'
+type DateRange = 'today' | 'week' | 'month' | 'year' | 'all'
 
 const DATE_RANGE_LABELS: Record<DateRange, string> = {
+  today: 'Today',
   week: 'This Week',
   month: 'This Month',
   year: 'This Year',
@@ -47,6 +49,10 @@ function getDateRange(range: DateRange): { date_from?: string; date_to?: string 
   const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const todayStr = fmt(today)
   if (range === 'all') return {}
+  if (range === 'today') {
+    const todayStr = fmt(today)
+    return { date_from: todayStr, date_to: todayStr }
+  }
   if (range === 'week') {
     const day = today.getDay()
     const diff = day === 0 ? 6 : day - 1
@@ -200,8 +206,8 @@ export default function HistoryPage() {
     () => (tab !== 'expenses' ? incomeEntries : []).filter(e => e.is_taxable).reduce((s, e) => s + Number(e.amount), 0),
     [tab, incomeEntries]
   )
-  const taxEst = taxableIncome * TAX_RATE_ESTIMATE
-  const netProfit = totalIncome - totalExpenses - taxEst
+  const taxEst = calcTaxSetAside(taxableIncome, TAX_RATE_ESTIMATE * 100)
+  const netProfit = calcNetProfit(totalIncome, totalExpenses, TAX_RATE_ESTIMATE * 100, 0, taxableIncome)
 
   const isFiltered = tab !== 'all' || dateRange !== 'all' || !!hustleFilter
 

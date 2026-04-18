@@ -1,15 +1,125 @@
 'use client'
 
-import { useState } from 'react'
-import { useDashboard, PERIOD_LABELS } from '@/lib/hooks/use-dashboard'
-import type { Period } from '@/lib/hooks/use-dashboard'
+import { useState, useMemo, useEffect } from 'react'
+import { ChevronDown, Check } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { calcMileageDeduction } from '@/lib/utils/calculations'
+import { useDashboard } from '@/lib/hooks/use-dashboard'
 import { formatCurrency, formatMileage, formatIrsRate, formatTaxRate } from '@/lib/utils/formatters'
 import StatCard from '@/components/shared/stat-card'
 
-const PERIOD_SHORT: Record<Period, string> = { week: 'Week', month: 'Month', year: 'Year', all: 'All Time' }
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const CURRENT_YEAR = new Date().getFullYear()
+
+function getYearRange(value: string): { start: string; end: string } {
+  if (value === 'all') return { start: '2000-01-01', end: `${CURRENT_YEAR}-12-31` }
+  return { start: `${value}-01-01`, end: `${value}-12-31` }
+}
+
+// ── Year Dropdown ─────────────────────────────────────────────────────────────
+
+interface YearOption { value: string; label: string }
+
+function YearDropdown({ value, options, onChange }: { value: string; options: YearOption[]; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const selected = options.find(o => o.value === value)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(prev => !prev)}
+        className="flex items-center gap-3 px-6 py-3 rounded-full font-label text-sm uppercase tracking-widest bg-[var(--primary)] text-white"
+      >
+        <span>{selected?.label ?? value}</span>
+        <ChevronDown
+          className={`w-3 h-3 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          strokeWidth={2}
+        />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="absolute top-[calc(100%+8px)] right-0 z-50 py-2 min-w-[160px]"
+            style={{
+              backgroundColor: 'var(--surface-container-lowest)',
+              borderRadius: '1.25rem',
+              boxShadow: '0 12px 32px rgba(30,58,95,0.14)',
+            }}
+          >
+            {options.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => { onChange(opt.value); setOpen(false) }}
+                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[var(--surface-container-low)] transition-colors first:rounded-t-[1.25rem] last:rounded-b-[1.25rem]"
+              >
+                <span
+                  className="font-label text-[10px] uppercase tracking-widest"
+                  style={{ color: opt.value === value ? 'var(--primary)' : 'var(--on-surface-variant)' }}
+                >
+                  {opt.label}
+                </span>
+                {opt.value === value && (
+                  <Check className="w-3.5 h-3.5 text-[var(--secondary)]" strokeWidth={2.5} />
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ── Hook: fetch distinct years with data ──────────────────────────────────────
+
+function useDataYears(): { options: YearOption[]; loading: boolean } {
+  const [years, setYears] = useState<number[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient()
+      const [incomeRes, expenseRes] = await Promise.all([
+        supabase.from('income').select('date'),
+        supabase.from('expenses').select('date'),
+      ])
+      const allDates = [
+        ...(incomeRes.data ?? []).map((r: { date: string }) => r.date),
+        ...(expenseRes.data ?? []).map((r: { date: string }) => r.date),
+      ]
+      const unique = [...new Set(allDates.map(d => Number(d.slice(0, 4))))].sort((a, b) => b - a)
+      setYears(unique)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const options: YearOption[] = useMemo(() => [
+    ...years.map(y => ({ value: String(y), label: String(y) })),
+    { value: 'all', label: 'All Time' },
+  ], [years])
+
+  return { options, loading }
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TaxPage() {
-  const [period, setPeriod] = useState<Period>('year')
+  const { options, loading: yearsLoading } = useDataYears()
+  const [selected, setSelected] = useState(String(CURRENT_YEAR))
+
+  // Once years load, default to most recent year that has data
+  useEffect(() => {
+    if (!yearsLoading && options.length > 0 && options[0].value !== 'all') {
+      setSelected(options[0].value)
+    }
+  }, [yearsLoading]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const customRange = useMemo(() => getYearRange(selected), [selected])
+  const periodLabel = selected === 'all' ? 'All Time' : selected
 
   const {
     totalIncome,
@@ -21,11 +131,10 @@ export default function TaxPage() {
     hustleStats,
     activeSnapshot,
     loading,
-  } = useDashboard(period)
+  } = useDashboard('year', customRange)
 
   const nonTaxableIncome = totalIncome - taxableIncome
-  const irsDeduction = totalMileage * (activeSnapshot?.irs_rate ?? 0)
-  const periodLabel = PERIOD_LABELS[period]
+  const irsDeduction = activeSnapshot ? calcMileageDeduction(totalMileage, activeSnapshot) : 0
 
   return (
     <div className="min-h-screen bg-[var(--surface)]">
@@ -35,29 +144,17 @@ export default function TaxPage() {
 
         <main className="px-6 mt-2 space-y-8">
 
-          {/* Page title + period selector */}
-          <div className="space-y-4">
+          {/* Page title + year selector */}
+          <div className="flex items-start justify-between">
             <div>
               <h2 className="font-headline font-black text-3xl text-[var(--primary)] tracking-tight">Tax Summary</h2>
               <p className="font-label text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
                 {periodLabel}
               </p>
             </div>
-            <div className="flex gap-1 p-1 bg-[var(--surface-container-low)] rounded-full">
-              {(Object.keys(PERIOD_SHORT) as Period[]).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`flex-1 py-2 rounded-full font-label text-[10px] uppercase tracking-widest transition-colors ${
-                    period === p
-                      ? 'bg-[var(--primary)] text-white font-semibold'
-                      : 'text-[var(--on-surface-variant)] opacity-60'
-                  }`}
-                >
-                  {PERIOD_SHORT[p]}
-                </button>
-              ))}
-            </div>
+            {!yearsLoading && options.length > 0 && (
+              <YearDropdown value={selected} options={options} onChange={setSelected} />
+            )}
           </div>
 
           {/* Key numbers 2×2 grid */}
@@ -142,24 +239,7 @@ export default function TaxPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-headline font-semibold text-sm text-[var(--primary)]">Vehicle Depreciation</p>
-                    <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60">Deducted from net profit</p>
-                  </div>
-                  <span className="font-headline font-black text-base" style={{ color: 'var(--expense)' }}>
-                    −{formatCurrency(totalDepreciation)}
-                  </span>
-                </div>
-                <div className="h-px bg-[var(--surface-container-high)]" />
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-headline font-semibold text-sm text-[var(--on-surface-variant)]">Est. Fuel Cost</p>
-                    <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60">IRS reference — log as expense for profit</p>
-                  </div>
-                  <span className="font-headline font-black text-base text-[var(--on-surface-variant)]">{formatCurrency(totalFuelCost)}</span>
-                </div>
-                <div className="h-px bg-[var(--surface-container-high)]" />
+                {/* IRS Standard Deduction */}
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="font-headline font-semibold text-sm text-[var(--on-surface-variant)]">IRS Standard Deduction</p>
@@ -168,6 +248,28 @@ export default function TaxPage() {
                     </p>
                   </div>
                   <span className="font-headline font-black text-base text-[var(--on-surface-variant)]">{formatCurrency(irsDeduction)}</span>
+                </div>
+                <div className="h-px bg-[var(--surface-container-high)]" />
+                {/* Vehicle Depreciation */}
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-headline font-semibold text-sm text-[var(--primary)]">Vehicle Depreciation</p>
+                    <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60">
+                      {formatMileage(totalMileage)} × {activeSnapshot?.depreciation_per_mile ? `$${activeSnapshot.depreciation_per_mile}/mi` : '—'}
+                    </p>
+                  </div>
+                  <span className="font-headline font-black text-base" style={{ color: 'var(--expense)' }}>
+                    −{formatCurrency(totalDepreciation)}
+                  </span>
+                </div>
+                <div className="h-px bg-[var(--surface-container-high)]" />
+                {/* Total IRS Fuel Cost */}
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-headline font-semibold text-sm" style={{ color: 'var(--secondary)' }}>Total IRS Fuel Cost</p>
+                    <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60">IRS Deduction − Depreciation</p>
+                  </div>
+                  <span className="font-headline font-black text-base" style={{ color: 'var(--secondary)' }}>{formatCurrency(irsDeduction - totalDepreciation)}</span>
                 </div>
               </div>
             )}
@@ -230,21 +332,9 @@ export default function TaxPage() {
                 {periodLabel} · {activeSnapshot ? `${formatTaxRate(activeSnapshot.tax_rate)} SE rate · ${formatIrsRate(activeSnapshot.irs_rate)} IRS rate` : 'No rate snapshot'}
               </p>
             </div>
-            <div className="flex gap-1 p-1 bg-[var(--surface-container-low)] rounded-full">
-              {(Object.keys(PERIOD_SHORT) as Period[]).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-5 py-2 rounded-full font-label text-[10px] uppercase tracking-widest transition-colors ${
-                    period === p
-                      ? 'bg-[var(--primary)] text-white font-semibold'
-                      : 'text-[var(--on-surface-variant)] opacity-60 hover:opacity-100'
-                  }`}
-                >
-                  {PERIOD_SHORT[p]}
-                </button>
-              ))}
-            </div>
+            {!yearsLoading && options.length > 0 && (
+              <YearDropdown value={selected} options={options} onChange={setSelected} />
+            )}
           </div>
 
           {/* 4-col stat cards */}
@@ -329,22 +419,7 @@ export default function TaxPage() {
                 <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-10 rounded-full bg-[var(--surface-container-high)] animate-pulse" />)}</div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-headline font-semibold text-base text-[var(--primary)]">Vehicle Depreciation</p>
-                      <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60 mt-0.5">Deducted from net profit</p>
-                    </div>
-                    <span className="font-headline font-black text-xl" style={{ color: 'var(--expense)' }}>−{formatCurrency(totalDepreciation)}</span>
-                  </div>
-                  <div className="h-px bg-[var(--surface-container-high)]" />
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-headline font-semibold text-base text-[var(--on-surface-variant)]">Est. Fuel Cost</p>
-                      <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60 mt-0.5">IRS reference — log as expense for profit</p>
-                    </div>
-                    <span className="font-headline font-black text-xl text-[var(--on-surface-variant)]">{formatCurrency(totalFuelCost)}</span>
-                  </div>
-                  <div className="h-px bg-[var(--surface-container-high)]" />
+                  {/* IRS Standard Deduction */}
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="font-headline font-semibold text-base text-[var(--on-surface-variant)]">IRS Standard Deduction</p>
@@ -353,6 +428,26 @@ export default function TaxPage() {
                       </p>
                     </div>
                     <span className="font-headline font-black text-xl text-[var(--on-surface-variant)]">{formatCurrency(irsDeduction)}</span>
+                  </div>
+                  <div className="h-px bg-[var(--surface-container-high)]" />
+                  {/* Vehicle Depreciation */}
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-headline font-semibold text-base text-[var(--primary)]">Vehicle Depreciation</p>
+                      <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60 mt-0.5">
+                        {formatMileage(totalMileage)} × {activeSnapshot?.depreciation_per_mile ? `$${activeSnapshot.depreciation_per_mile}/mi` : '—'}
+                      </p>
+                    </div>
+                    <span className="font-headline font-black text-xl" style={{ color: 'var(--expense)' }}>−{formatCurrency(totalDepreciation)}</span>
+                  </div>
+                  <div className="h-px bg-[var(--surface-container-high)]" />
+                  {/* Total IRS Fuel Cost */}
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-headline font-semibold text-base" style={{ color: 'var(--secondary)' }}>Total IRS Fuel Cost</p>
+                      <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60 mt-0.5">IRS Deduction − Depreciation</p>
+                    </div>
+                    <span className="font-headline font-black text-xl" style={{ color: 'var(--secondary)' }}>{formatCurrency(irsDeduction - totalDepreciation)}</span>
                   </div>
                 </div>
               )}

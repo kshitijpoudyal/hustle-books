@@ -6,6 +6,8 @@ export interface Profile {
     currency: string
     dark_mode: boolean
     include_depreciation_in_profit: boolean
+    include_tax_in_profit: boolean
+    show_calculator_fab: boolean
     vehicle: {
       year: number | null
       make_model: string | null

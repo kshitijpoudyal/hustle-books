@@ -6,6 +6,7 @@ import { AlertTriangle, LogOut, TrendingDown, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { useProfile } from '@/lib/hooks/use-profile'
 import { useRates } from '@/lib/hooks/use-rates'
+import { useUserSettings } from '@/lib/context/user-settings-context'
 import { calcDepreciationPerMile } from '@/lib/utils/calculations'
 import {
   formatGasPrice,
@@ -41,6 +42,7 @@ export default function SettingsPage() {
   const router = useRouter()
   const { profile, email, loading: profileLoading, updateProfile, signOut } = useProfile()
   const { activeSnapshot, loading: ratesLoading } = useRates()
+  const { includeDeprInProfit, includeTaxInProfit, showCalculatorFab, updateSettings } = useUserSettings()
 
   const [fullName, setFullName] = useState('')
   const [vehicleYear, setVehicleYear] = useState('')
@@ -49,7 +51,6 @@ export default function SettingsPage() {
   const [savingName, setSavingName] = useState(false)
   const [savingVehicle, setSavingVehicle] = useState(false)
   const [savingAll, setSavingAll] = useState(false)
-  const [includeDeprInProfit, setIncludeDeprInProfit] = useState(true)
 
   // Depreciation calculator
   const [purchasePrice, setPurchasePrice] = useState('')
@@ -63,7 +64,6 @@ export default function SettingsPage() {
 
   const hydrateFromProfile = useCallback((p: Profile) => {
     setFullName(p.full_name ?? '')
-    setIncludeDeprInProfit(p.settings?.include_depreciation_in_profit ?? true)
     const v = p.settings?.vehicle
     if (v) {
       setVehicleYear(v.year?.toString() ?? '')
@@ -77,9 +77,15 @@ export default function SettingsPage() {
   }, [profile, hydrateFromProfile])
 
   async function handleToggleDeprInProfit(val: boolean) {
-    if (!profile) return
-    setIncludeDeprInProfit(val)
-    await updateProfile({ settings: { ...profile.settings, include_depreciation_in_profit: val } })
+    await updateSettings({ include_depreciation_in_profit: val })
+  }
+
+  async function handleToggleTaxInProfit(val: boolean) {
+    await updateSettings({ include_tax_in_profit: val })
+  }
+
+  async function handleToggleCalculatorFab(val: boolean) {
+    await updateSettings({ show_calculator_fab: val })
   }
 
   async function handleSaveName() {
@@ -115,7 +121,6 @@ export default function SettingsPage() {
     const vehicleOk = await updateProfile({
       settings: {
         ...profile.settings,
-        include_depreciation_in_profit: includeDeprInProfit,
         vehicle: {
           ...profile.settings.vehicle,
           year: vehicleYear ? parseInt(vehicleYear) : null,
@@ -355,6 +360,59 @@ export default function SettingsPage() {
                   />
                 </div>
               </button>
+              <div className="border-t border-[var(--outline-variant)] opacity-20 my-2" />
+              <button
+                type="button"
+                onClick={() => handleToggleTaxInProfit(!includeTaxInProfit)}
+                className="w-full flex items-center justify-between gap-4 py-2"
+              >
+                <div className="text-left">
+                  <p className="font-label text-sm font-bold text-[var(--primary)]">Include tax reserve in net profit</p>
+                  <p className="font-body text-xs text-[var(--on-surface-variant)] mt-1">
+                    When on, estimated tax set-aside is subtracted from your profit figure.
+                  </p>
+                </div>
+                <div
+                  className="relative flex-shrink-0 w-12 h-7 rounded-full transition-colors duration-200"
+                  style={{ backgroundColor: includeTaxInProfit ? 'var(--primary)' : 'var(--surface-container-highest)' }}
+                >
+                  <div
+                    className="absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                    style={{ transform: includeTaxInProfit ? 'translateX(1.4rem)' : 'translateX(0.2rem)' }}
+                  />
+                </div>
+              </button>
+            </div>
+          </section>
+
+          {/* Tools */}
+          <section className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+            <div className="md:col-span-4">
+              <h2 className="font-headline font-extrabold text-3xl tracking-tight text-[var(--primary)]">Tools</h2>
+              <p className="text-[var(--on-surface-variant)] mt-2 font-body text-sm">Quick access tools and widgets.</p>
+            </div>
+            <div className="md:col-span-8 bg-[var(--surface-container-low)] rounded-[1rem] p-8">
+              <button
+                type="button"
+                onClick={() => handleToggleCalculatorFab(!showCalculatorFab)}
+                className="w-full flex items-center justify-between gap-4 py-2"
+              >
+                <div className="text-left">
+                  <p className="font-label text-sm font-bold text-[var(--primary)]">Show calculator button</p>
+                  <p className="font-body text-xs text-[var(--on-surface-variant)] mt-1">
+                    Display a floating calculator button on every page.
+                  </p>
+                </div>
+                <div
+                  className="relative flex-shrink-0 w-12 h-7 rounded-full transition-colors duration-200"
+                  style={{ backgroundColor: showCalculatorFab ? 'var(--primary)' : 'var(--surface-container-highest)' }}
+                >
+                  <div
+                    className="absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                    style={{ transform: showCalculatorFab ? 'translateX(1.4rem)' : 'translateX(0.2rem)' }}
+                  />
+                </div>
+              </button>
             </div>
           </section>
 
@@ -557,6 +615,49 @@ export default function SettingsPage() {
                 <div
                   className="absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200"
                   style={{ transform: includeDeprInProfit ? 'translateX(1.6rem)' : 'translateX(0.25rem)' }}
+                />
+              </button>
+            </div>
+            <div className="bg-[var(--surface-container-low)] squircle p-8 flex items-center justify-between gap-8 mt-8">
+              <div>
+                <p className="font-headline font-bold text-[var(--primary)]">Include tax reserve in net profit</p>
+                <p className="font-body text-sm text-[var(--on-surface-variant)] mt-1">
+                  When on, estimated tax set-aside is subtracted from your profit figure across the dashboard and hustle pages.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggleTaxInProfit(!includeTaxInProfit)}
+                className="relative flex-shrink-0 w-14 h-8 rounded-full transition-colors duration-200"
+                style={{ backgroundColor: includeTaxInProfit ? 'var(--primary)' : 'var(--surface-container-highest)' }}
+              >
+                <div
+                  className="absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200"
+                  style={{ transform: includeTaxInProfit ? 'translateX(1.6rem)' : 'translateX(0.25rem)' }}
+                />
+              </button>
+            </div>
+          </section>
+
+          {/* Tools */}
+          <section className="col-span-12 mt-8">
+            <h2 className="font-headline font-extrabold text-3xl tracking-tight text-[var(--primary)] mb-4">Tools</h2>
+            <div className="bg-[var(--surface-container-low)] squircle p-8 flex items-center justify-between gap-8">
+              <div>
+                <p className="font-headline font-bold text-[var(--primary)]">Show calculator button</p>
+                <p className="font-body text-sm text-[var(--on-surface-variant)] mt-1">
+                  Display a floating calculator button on every page for quick access.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggleCalculatorFab(!showCalculatorFab)}
+                className="relative flex-shrink-0 w-14 h-8 rounded-full transition-colors duration-200"
+                style={{ backgroundColor: showCalculatorFab ? 'var(--primary)' : 'var(--surface-container-highest)' }}
+              >
+                <div
+                  className="absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200"
+                  style={{ transform: showCalculatorFab ? 'translateX(1.6rem)' : 'translateX(0.25rem)' }}
                 />
               </button>
             </div>

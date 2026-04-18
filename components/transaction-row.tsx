@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { ArrowUp, ArrowDown, RefreshCw, MoreHorizontal } from 'lucide-react'
 import { formatCurrency, formatDate, formatMileage } from '@/lib/utils/formatters'
+import { calcNetMargin } from '@/lib/utils/calculations'
 import { EXPENSE_CATEGORIES } from '@/lib/utils/constants'
 import type { TransactionEntry, IncomeEntry, ExpenseEntry } from '@/lib/types'
 
@@ -29,7 +30,7 @@ function getMeta(inc: Inc | null, variant: TransactionRowVariant): string {
     return m
   }
   if (inc.hustle?.category === 'reselling_and_flipping' && inc.cogs != null && inc.cogs > 0) {
-    return `Cost ${formatCurrency(inc.cogs)} · Net ${formatCurrency(Number(inc.amount) - inc.cogs)}`
+    return `Cost ${formatCurrency(inc.cogs)} · Net ${formatCurrency(calcNetMargin(Number(inc.amount), inc.cogs))}`
   }
   return ''
 }

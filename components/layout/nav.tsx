@@ -13,11 +13,11 @@ import {
 import { useProfile } from '@/lib/hooks/use-profile'
 
 const NAV_ITEMS = [
-  { href: '/',         label: 'Dashboard', Icon: LayoutDashboard },
-  { href: '/history',  label: 'History',   Icon: Clock },
-  { href: '/log',      label: 'Log',       Icon: PlusCircle, primary: true },
-  { href: '/hustles',  label: 'Hustles',   Icon: Rocket },
-  { href: '/settings', label: 'Settings',  Icon: Settings },
+  { href: '/',          label: 'Dashboard', Icon: LayoutDashboard },
+  { href: '/history',   label: 'History',   Icon: Clock },
+  { href: '/log',       label: 'Log',       Icon: PlusCircle, primary: true },
+  { href: '/hustles',   label: 'Hustles',   Icon: Rocket },
+  { href: '/settings',  label: 'Settings',  Icon: Settings },
 ]
 
 /* ── Mobile top header ────────────────────────────────────────────────────── */
@@ -175,7 +175,7 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
           style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
         >
           <PlusCircle className="w-4 h-4" strokeWidth={2} />
-          New Entry
+          Log
         </Link>
 
         <div className="mt-6 flex items-center gap-x-3 px-2">
