@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import { X, Delete } from 'lucide-react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { X, Delete, Clock } from 'lucide-react'
 
 interface CalculatorModalProps {
   onClose: () => void
@@ -9,13 +9,56 @@ interface CalculatorModalProps {
 
 type CalcOp = '+' | '−' | '×' | '÷' | null
 
+interface HistoryEntry {
+  expression: string
+  result: string
+}
+
+const STORAGE_STATE_KEY = 'calc_state'
+const STORAGE_HISTORY_KEY = 'calc_history'
+const MAX_HISTORY = 20
+
 const BTN_BASE = 'flex items-center justify-center rounded-2xl font-headline font-bold text-xl h-14 w-full active:scale-95 transition-transform duration-75 select-none cursor-pointer'
 
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_STATE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return null
+}
+
+function loadHistory(): HistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_HISTORY_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
 export default function CalculatorModal({ onClose }: CalculatorModalProps) {
-  const [display, setDisplay] = useState('0')
-  const [stored, setStored] = useState<number | null>(null)
-  const [op, setOp] = useState<CalcOp>(null)
-  const [fresh, setFresh] = useState(true) // next digit replaces display
+  const saved = useRef(loadState())
+
+  const [display, setDisplay] = useState<string>(saved.current?.display ?? '0')
+  const [stored, setStored] = useState<number | null>(saved.current?.stored ?? null)
+  const [op, setOp] = useState<CalcOp>(saved.current?.op ?? null)
+  const [fresh, setFresh] = useState<boolean>(saved.current?.fresh ?? true)
+  const [history, setHistory] = useState<HistoryEntry[]>(loadHistory)
+  const [showHistory, setShowHistory] = useState(false)
+
+  // Persist state whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify({ display, stored, op, fresh }))
+    } catch {}
+  }, [display, stored, op, fresh])
+
+  // Persist history whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_HISTORY_KEY, JSON.stringify(history))
+    } catch {}
+  }, [history])
 
   const appendDigit = useCallback((d: string) => {
     setDisplay(prev => {
@@ -41,8 +84,12 @@ export default function CalculatorModal({ onClose }: CalculatorModalProps) {
 
   const equals = useCallback(() => {
     if (stored === null || !op) return
-    const result = compute(stored, parseFloat(display), op)
-    setDisplay(fmt(result))
+    const val = parseFloat(display)
+    const result = compute(stored, val, op)
+    const resultStr = fmt(result)
+    const expression = `${fmt(stored)} ${op} ${display}`
+    setHistory(prev => [{ expression, result: resultStr }, ...prev].slice(0, MAX_HISTORY))
+    setDisplay(resultStr)
     setStored(null)
     setOp(null)
     setFresh(true)
@@ -50,6 +97,10 @@ export default function CalculatorModal({ onClose }: CalculatorModalProps) {
 
   const clear = useCallback(() => {
     setDisplay('0'); setStored(null); setOp(null); setFresh(true)
+  }, [])
+
+  const clearHistory = useCallback(() => {
+    setHistory([])
   }, [])
 
   const backspace = useCallback(() => {
@@ -65,6 +116,14 @@ export default function CalculatorModal({ onClose }: CalculatorModalProps) {
 
   const percent = useCallback(() => {
     setDisplay(prev => fmt(parseFloat(prev) / 100))
+  }, [])
+
+  const recallHistory = useCallback((entry: HistoryEntry) => {
+    setDisplay(entry.result)
+    setStored(null)
+    setOp(null)
+    setFresh(true)
+    setShowHistory(false)
   }, [])
 
   // Keyboard support
@@ -89,25 +148,73 @@ export default function CalculatorModal({ onClose }: CalculatorModalProps) {
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Floating panel — no backdrop so the rest of the app remains interactive */}
       <div
-        className="fixed inset-0 z-50"
-        style={{ backgroundColor: 'rgba(2,36,72,0.35)', backdropFilter: 'blur(6px)' }}
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div
-        className="fixed z-50 bottom-24 right-4 lg:bottom-8 lg:right-8 w-72 squircle overflow-hidden shadow-2xl"
-        style={{ boxShadow: '0 24px 64px rgba(30,58,95,0.22)', backgroundColor: 'var(--surface-container-low)' }}
+        className="fixed z-50 bottom-24 right-4 lg:bottom-8 lg:right-8 w-72 squircle overflow-hidden"
+        style={{ boxShadow: '0 4px 16px rgba(30,58,95,0.25), 0 24px 60px rgba(30,58,95,0.45), 0 64px 120px rgba(30,58,95,0.30)', backgroundColor: 'var(--surface-container-low)' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           <span className="font-label text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)]">Calculator</span>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--surface-container-high)' }}>
-            <X className="w-3.5 h-3.5 text-[var(--on-surface-variant)]" strokeWidth={2} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setShowHistory(h => !h)}
+              aria-label="Toggle history"
+              className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+              style={{ backgroundColor: showHistory ? 'var(--secondary)' : 'var(--surface-container-high)' }}
+            >
+              <Clock className="w-3.5 h-3.5" style={{ color: showHistory ? 'white' : 'var(--on-surface-variant)' }} strokeWidth={2} />
+            </button>
+            <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--surface-container-high)' }}>
+              <X className="w-3.5 h-3.5 text-[var(--on-surface-variant)]" strokeWidth={2} />
+            </button>
+          </div>
         </div>
+
+        {/* History panel */}
+        {showHistory && (
+          <div className="px-3 pb-2">
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ backgroundColor: 'var(--surface-container)' }}
+            >
+              {/* History header */}
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)]">History</span>
+                {history.length > 0 && (
+                  <button
+                    onClick={clearHistory}
+                    className="font-label text-[9px] uppercase tracking-widest transition-opacity hover:opacity-70"
+                    style={{ color: 'var(--error, #b3261e)' }}
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+
+              {/* Entries */}
+              <div className="max-h-36 overflow-y-auto">
+                {history.length === 0 ? (
+                  <p className="px-3 pb-3 text-center font-label text-[10px] text-[var(--on-surface-variant)] opacity-50">
+                    No history yet
+                  </p>
+                ) : (
+                  history.map((entry, i) => (
+                    <button
+                      key={i}
+                      onClick={() => recallHistory(entry)}
+                      className="w-full text-right px-3 py-1.5 transition-colors hover:opacity-80 active:scale-[0.98]"
+                      style={{ borderTop: i > 0 ? '1px solid var(--surface-container-high)' : undefined }}
+                    >
+                      <p className="font-label text-[10px] text-[var(--on-surface-variant)] opacity-60 truncate">{entry.expression}</p>
+                      <p className="font-headline font-bold text-sm text-[var(--primary)]">= {entry.result}</p>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Display */}
         <div className="px-5 pb-3 pt-1">
@@ -153,7 +260,8 @@ export default function CalculatorModal({ onClose }: CalculatorModalProps) {
           <CalcBtn label="3" onClick={() => appendDigit('3')} />
           <CalcBtn label="+" onClick={() => chooseOp('+')} variant="op" active={isActiveOp('+')} />
           {/* Row 5 */}
-          <CalcBtn label="⌫" onClick={backspace} wide />
+          <CalcBtn label="⌫" onClick={backspace} />
+          <CalcBtn label="0" onClick={() => appendDigit('0')} />
           <CalcBtn label="." onClick={() => appendDigit('.')} />
           <CalcBtn label="=" onClick={equals} variant="equals" />
         </div>
