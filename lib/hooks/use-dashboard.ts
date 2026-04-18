@@ -34,6 +34,7 @@ export interface DashboardData {
   totalIncome: number
   taxableIncome: number
   totalExpenses: number
+  totalCogs: number
   netProfit: number
   taxSetAside: number
   totalDepreciation: number
