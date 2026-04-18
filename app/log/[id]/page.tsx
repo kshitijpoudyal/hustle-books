@@ -10,7 +10,7 @@ import { useIncome } from '@/lib/hooks/use-income'
 import { useExpenses } from '@/lib/hooks/use-expenses'
 import { useRates } from '@/lib/hooks/use-rates'
 import { resolveSnapshot } from '@/lib/utils/rate-resolver'
-import { calcFuelCost, calcDepreciationCost } from '@/lib/utils/calculations'
+import { calcFuelCost, calcDepreciationCost, calcNetMargin, calcMileagePreviewTotal } from '@/lib/utils/calculations'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { EXPENSE_CATEGORIES } from '@/lib/utils/constants'
 import type { IncomeEntry, ExpenseEntry } from '@/lib/types'
@@ -293,13 +293,13 @@ export default function EditEntryPage() {
                     <span
                       className="px-2.5 py-0.5 rounded-full font-label text-[10px] font-bold"
                       style={{
-                        backgroundColor: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                        backgroundColor: calcNetMargin(parseFloat(incomeAmount), parseFloat(incomeCogs)) >= 0
                           ? 'rgba(0,106,104,0.1)' : 'rgba(180,60,40,0.1)',
-                        color: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                        color: calcNetMargin(parseFloat(incomeAmount), parseFloat(incomeCogs)) >= 0
                           ? 'var(--secondary)' : 'var(--expense)',
                       }}
                     >
-                      ${(parseFloat(incomeAmount) - parseFloat(incomeCogs)).toFixed(2)}
+                      ${calcNetMargin(parseFloat(incomeAmount), parseFloat(incomeCogs)).toFixed(2)}
                     </span>
                   </div>
                 )}
@@ -362,7 +362,7 @@ export default function EditEntryPage() {
                     <div style={{ borderLeft: '1px solid rgba(196,198,207,0.2)' }}>
                       <p className="font-label text-[10px] text-[var(--on-surface-variant)] opacity-60">TOTAL</p>
                       <p className="text-xs font-black" style={{ color: 'var(--secondary)' }}>
-                        {formatCurrency(ratePreview.fuelCost + (ratePreview.snapshot.depreciation_per_mile > 0 ? ratePreview.deprCost : 0))}
+                        {formatCurrency(calcMileagePreviewTotal(ratePreview.fuelCost, ratePreview.deprCost, ratePreview.snapshot.depreciation_per_mile))}
                       </p>
                     </div>
                   </div>

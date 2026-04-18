@@ -1,11 +1,13 @@
 import { RateSnapshot } from '@/lib/types'
 
 // Fuel cost per trip — ALWAYS uses snapshot rates, never "current" rates
+// when saving/updating an income entry with the actual mileage method (gas price × miles ÷ MPG). This bakes fuel_cost_at_log into the DB row.
 export function calcFuelCost(mileage: number, snapshot: RateSnapshot): number {
   return (mileage / snapshot.mpg) * snapshot.gas_price
 }
 
 // IRS standard method — uses snapshot's IRS rate
+//  when saving/updating an income entry with the irs mileage method. Bakes fuel_cost_at_log = mileage × irs_rate permanently into the DB row.
 export function calcMileageDeduction(mileage: number, snapshot: RateSnapshot): number {
   return mileage * snapshot.irs_rate
 }
@@ -36,6 +38,12 @@ export function calcTotalMileageCost(
   return { fuelCost, depreciationCost, total: fuelCost + depreciationCost }
 }
 
+// Mileage preview total shown in the log form.
+// Depreciation is only added when the rate has been configured (> 0).
+export function calcMileagePreviewTotal(fuelCost: number, deprCost: number, depreciationPerMile: number): number {
+  return fuelCost + (depreciationPerMile > 0 ? deprCost : 0)
+}
+
 // Depreciation helper calculator (used in Settings page)
 // Straight-line: (purchase - salvage) / totalMiles
 export function calcDepreciationPerMile(
@@ -45,6 +53,16 @@ export function calcDepreciationPerMile(
 ): number {
   if (expectedTotalMiles <= 0) return 0
   return Math.max(0, (purchasePrice - salvageValue) / expectedTotalMiles)
+}
+
+// Tax amount to set aside — taxableIncome × taxRate (taxRate as a percentage, e.g. 25)
+export function calcTaxSetAside(taxableIncome: number, taxRate: number): number {
+  return taxableIncome * (taxRate / 100)
+}
+
+// Net margin after cost of goods sold
+export function calcNetMargin(income: number, cogs: number): number {
+  return income - cogs
 }
 
 // Net profit — uses snapshot tax rate for the period
@@ -58,8 +76,7 @@ export function calcNetProfit(
   taxableIncome?: number,
   totalDepreciation: number = 0
 ): number {
-  const taxBase = taxableIncome ?? totalIncome
-  const taxSetAside = taxBase * (taxRate / 100)
+  const taxSetAside = calcTaxSetAside(taxableIncome ?? totalIncome, taxRate)
   return totalIncome - totalExpenses - taxSetAside - totalCogs - totalDepreciation
 }
 
@@ -71,6 +88,5 @@ export function calcEntryProfit(
   incomeAmount: number,
   taxRate: number // as percentage e.g. 25
 ): number {
-  const tax = incomeAmount * (taxRate / 100)
-  return incomeAmount - tax
+  return incomeAmount - calcTaxSetAside(incomeAmount, taxRate)
 }

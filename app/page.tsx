@@ -9,7 +9,7 @@ import RevenueTrendCard from '@/components/dashboard/revenue-trend-card'
 import Link from 'next/link'
 import { TrendingUp, Receipt } from 'lucide-react'
 
-const PERIOD_SHORT: Record<Period, string> = { week: 'Week', month: 'Month', year: 'Year', all: 'All Time' }
+const PERIOD_SHORT: Record<Period, string> = { today: 'Today', week: 'Week', month: 'Month', year: 'Year', all: 'All Time' }
 
 export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>('month')

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { resolveSnapshot } from '@/lib/utils/rate-resolver'
-import { calcFuelCost, calcDepreciationCost } from '@/lib/utils/calculations'
+import { calcFuelCost, calcDepreciationCost, calcMileageDeduction } from '@/lib/utils/calculations'
 import type { IncomeEntry, RateSnapshot } from '@/lib/types'
 
 export interface IncomeFilters {
@@ -63,7 +63,7 @@ export function useIncome(filters?: IncomeFilters) {
     if (snapshot && data.mileage) {
       rate_snapshot_id = snapshot.id
       if (data.mileage_method === 'irs') {
-        fuel_cost_at_log = data.mileage * snapshot.irs_rate
+        fuel_cost_at_log = calcMileageDeduction(data.mileage, snapshot)
       } else {
         fuel_cost_at_log = calcFuelCost(data.mileage, snapshot)
       }
@@ -126,7 +126,7 @@ export function useIncome(filters?: IncomeFilters) {
       if (snapshot) {
         updatedData.rate_snapshot_id = snapshot.id
         updatedData.fuel_cost_at_log = method === 'irs'
-          ? newMileage * snapshot.irs_rate
+          ? calcMileageDeduction(newMileage, snapshot)
           : calcFuelCost(newMileage, snapshot)
         updatedData.depreciation_cost_at_log = calcDepreciationCost(newMileage, snapshot)
       }

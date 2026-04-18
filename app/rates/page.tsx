@@ -1,8 +1,9 @@
 'use client'
 
 import { Suspense, useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Lock, Unlock, ChevronDown, ChevronUp, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Lock, Unlock, ChevronDown, ChevronUp, AlertTriangle, RefreshCw, Sigma } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRates } from '@/lib/hooks/use-rates'
 import type { RateSnapshotWithCount } from '@/lib/hooks/use-rates'
@@ -746,6 +747,26 @@ function RatesPageInner() {
           </div>
         </div>
       )}
+
+      {/* Formulas reference link */}
+      <div className="mx-4 lg:mx-6 mt-6">
+        <Link
+          href="/formulas"
+          className="flex items-center justify-between px-5 py-4 rounded-2xl transition-colors"
+          style={{ backgroundColor: 'var(--surface-container-low)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(44,166,164,0.12)' }}>
+              <Sigma className="w-4 h-4" style={{ color: 'var(--secondary)' }} strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="font-headline font-semibold text-sm text-[var(--primary)]">Profit Formulas</p>
+              <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-60">How your numbers are calculated</p>
+            </div>
+          </div>
+          <ChevronDown className="w-4 h-4 text-[var(--on-surface-variant)] opacity-40 -rotate-90" strokeWidth={1.5} />
+        </Link>
+      </div>
     </div>
   )
 }

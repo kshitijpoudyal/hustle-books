@@ -75,27 +75,14 @@ export default function StatCards({
       label: 'Estimated Taxes',
       value: formatCurrency(taxSetAside),
       icon: Building2,
-      badge: { text: 'Reserve', className: 'bg-[var(--tertiary-fixed)] text-[var(--tertiary-container)]' },
+      badge: { text: periodLabel, className: 'bg-[var(--tertiary-fixed)] text-[var(--tertiary-container)]' },
       trendIcon: Clock,
       trendColor: 'var(--on-surface-variant)',
       trendText: 'Set Aside',
       wide: true,
       height: 'h-44',
       href: '/tax',
-    },
-    {
-      key: 'depreciation',
-      label: 'Depreciation',
-      value: formatCurrency(totalDepreciation),
-      icon: Route,
-      badge: { text: 'Vehicle', className: 'bg-[var(--surface-container-high)] text-[var(--on-surface-variant)]' },
-      trendIcon: Route,
-      trendColor: 'var(--on-surface-variant)',
-      trendText: formatMileage(totalMileage),
-      wide: true,
-      height: 'h-32',
-      className: 'lg:h-44',
-    },
+    }
   ]
 
   return (

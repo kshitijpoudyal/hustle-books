@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Loader2, ArrowRight, TriangleAlert } from 'lucide-react'
@@ -10,7 +11,7 @@ import { useIncome } from '@/lib/hooks/use-income'
 import { useExpenses } from '@/lib/hooks/use-expenses'
 import { useRates } from '@/lib/hooks/use-rates'
 import { resolveSnapshot } from '@/lib/utils/rate-resolver'
-import { calcFuelCost, calcDepreciationCost } from '@/lib/utils/calculations'
+import { calcFuelCost, calcDepreciationCost, calcNetMargin, calcMileagePreviewTotal } from '@/lib/utils/calculations'
 import { formatCurrency, formatGasPrice, formatMpg } from '@/lib/utils/formatters'
 import { EXPENSE_CATEGORIES, IRS_MILEAGE_RATE_DEFAULT } from '@/lib/utils/constants'
 import type { ExpenseEntry } from '@/lib/types'
@@ -30,6 +31,7 @@ function ChevronDown() {
 }
 
 export default function LogPage() {
+  const router = useRouter()
   const { hustles, loading: hustlesLoading } = useHustles()
   const { createIncome } = useIncome()
   const { createExpense } = useExpenses()
@@ -112,7 +114,7 @@ export default function LogPage() {
       is_taxable: incomeTaxable,
     })
     setSubmitting(false)
-    if (ok) { toast.success('Income logged!'); resetIncomeForm() }
+    if (ok) { toast.success('Income logged!'); resetIncomeForm(); router.push('/') }
   }
 
   async function doSubmitExpense() {
@@ -125,7 +127,7 @@ export default function LogPage() {
       is_recurring: expenseRecurring, date: expenseDate,
     })
     setSubmitting(false)
-    if (ok) { toast.success('Expense logged!'); resetExpenseForm() }
+    if (ok) { toast.success('Expense logged!'); resetExpenseForm(); router.push('/') }
   }
 
   function handleIncomeSubmit(e: React.FormEvent) { e.preventDefault(); doSubmitIncome() }
@@ -244,13 +246,13 @@ export default function LogPage() {
                       <span
                         className="px-2.5 py-0.5 rounded-full font-label text-[10px] font-bold"
                         style={{
-                          backgroundColor: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                          backgroundColor: calcNetMargin(parseFloat(incomeAmount), parseFloat(incomeCogs)) >= 0
                             ? 'rgba(0,106,104,0.1)' : 'rgba(180,60,40,0.1)',
-                          color: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                          color: calcNetMargin(parseFloat(incomeAmount), parseFloat(incomeCogs)) >= 0
                             ? 'var(--secondary)' : 'var(--expense)',
                         }}
                       >
-                        ${(parseFloat(incomeAmount) - parseFloat(incomeCogs)).toFixed(2)}
+                        ${calcNetMargin(parseFloat(incomeAmount), parseFloat(incomeCogs)).toFixed(2)}
                       </span>
                     </div>
                   )}
@@ -313,7 +315,7 @@ export default function LogPage() {
                       <div style={{ borderLeft: '1px solid rgba(196,198,207,0.2)' }}>
                         <p className="font-label text-[10px] text-[var(--on-surface-variant)] opacity-60">TOTAL</p>
                         <p className="text-xs font-black" style={{ color: 'var(--secondary)' }}>
-                          {formatCurrency(ratePreview.fuelCost + (ratePreview.snapshot.depreciation_per_mile > 0 ? ratePreview.deprCost : 0))}
+                          {formatCurrency(calcMileagePreviewTotal(ratePreview.fuelCost, ratePreview.deprCost, ratePreview.snapshot.depreciation_per_mile))}
                         </p>
                       </div>
                     </div>
@@ -654,13 +656,13 @@ export default function LogPage() {
                           <span
                             className="px-2.5 py-0.5 rounded-full font-label text-[10px] font-bold whitespace-nowrap"
                             style={{
-                              backgroundColor: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                              backgroundColor: calcNetMargin(parseFloat(incomeAmount), parseFloat(incomeCogs)) >= 0
                                 ? 'rgba(0,106,104,0.1)' : 'rgba(180,60,40,0.1)',
-                              color: parseFloat(incomeAmount) - parseFloat(incomeCogs) >= 0
+                              color: calcNetMargin(parseFloat(incomeAmount), parseFloat(incomeCogs)) >= 0
                                 ? 'var(--secondary)' : 'var(--expense)',
                             }}
                           >
-                            ${(parseFloat(incomeAmount) - parseFloat(incomeCogs)).toFixed(2)} margin
+                            ${calcNetMargin(parseFloat(incomeAmount), parseFloat(incomeCogs)).toFixed(2)} margin
                           </span>
                         )}
                       </div>
@@ -748,7 +750,7 @@ export default function LogPage() {
                         <div>
                           <p className="font-label text-[9px] uppercase tracking-wider text-[var(--on-surface-variant)] opacity-60">Total Est.</p>
                           <p className="text-sm font-black" style={{ color: 'var(--secondary)' }}>
-                            {formatCurrency(ratePreview.fuelCost + (ratePreview.snapshot.depreciation_per_mile > 0 ? ratePreview.deprCost : 0))}
+                            {formatCurrency(calcMileagePreviewTotal(ratePreview.fuelCost, ratePreview.deprCost, ratePreview.snapshot.depreciation_per_mile))}
                           </p>
                         </div>
                       </div>
