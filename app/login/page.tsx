@@ -177,6 +177,19 @@ export default function LoginPage() {
         </div>
 
       </div>
+
+      <p className="mt-6 text-center text-xs" style={{ color: 'var(--on-surface-variant)' }}>
+        Powered by{' '}
+        <a
+          href="https://www.kshitijstudio.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium hover:underline"
+          style={{ color: 'var(--secondary)' }}
+        >
+          KshitijStudio
+        </a>
+      </p>
     </div>
   )
 }
