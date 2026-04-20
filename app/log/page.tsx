@@ -14,8 +14,8 @@ import { resolveSnapshot } from '@/lib/utils/rate-resolver'
 import { calcFuelCost, calcDepreciationCost, calcNetMargin, calcMileagePreviewTotal } from '@/lib/utils/calculations'
 import { formatCurrency, formatGasPrice, formatMpg } from '@/lib/utils/formatters'
 import { EXPENSE_CATEGORIES, IRS_MILEAGE_RATE_DEFAULT } from '@/lib/utils/constants'
-import { VoiceInputButton } from '@/components/log/voice-input-button'
 import { VoicePreviewModal } from '@/components/log/voice-preview-modal'
+import { parseVoiceTranscript } from '@/lib/utils/voice-parser'
 import type { ParsedVoiceTransaction } from '@/lib/utils/voice-parser'
 import type { ExpenseEntry } from '@/lib/types'
 
@@ -64,6 +64,22 @@ export default function LogPage() {
 
   // Voice input state
   const [voiceParsed, setVoiceParsed] = useState<ParsedVoiceTransaction | null>(null)
+
+  const activeHustles = hustles.filter(h => h.is_active)
+
+  // Listen for voice transcript from the nav FAB mic button
+  useEffect(() => {
+    function onVoiceTranscript(e: Event) {
+      const transcript = (e as CustomEvent<string>).detail
+      if (transcript) {
+        const parsed = parseVoiceTranscript(transcript, activeHustles.map(h => h.name))
+        setVoiceParsed(parsed)
+      }
+    }
+    window.addEventListener('hustle-voice-transcript', onVoiceTranscript)
+    return () => window.removeEventListener('hustle-voice-transcript', onVoiceTranscript)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeHustles])
 
   // Check if any income entry on the same date already has mileage tracked
   useEffect(() => {
@@ -139,10 +155,6 @@ export default function LogPage() {
   function handleIncomeSubmit(e: React.FormEvent) { e.preventDefault(); doSubmitIncome() }
   function handleExpenseSubmit(e: React.FormEvent) { e.preventDefault(); doSubmitExpense() }
 
-  function handleVoiceParsed(parsed: ParsedVoiceTransaction) {
-    setVoiceParsed(parsed)
-  }
-
   function handleVoiceApply(fields: {
     type: 'income' | 'expense' | null
     amount: string
@@ -172,7 +184,6 @@ export default function LogPage() {
     toast.success('Voice entry applied — review and save.')
   }
 
-  const activeHustles = hustles.filter(h => h.is_active)
   const selectedHustle = useMemo(
     () => activeHustles.find(h => h.id === incomeHustleId) ?? null,
     [incomeHustleId, activeHustles]
@@ -210,28 +221,21 @@ export default function LogPage() {
 
         <main className="px-6 max-w-lg mx-auto">
 
-          {/* Segment Toggle + Voice Button */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="flex flex-1 p-1 bg-[var(--surface-container)] rounded-full">
-              {(['income', 'expense'] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={`flex-1 py-3 px-6 rounded-full font-headline font-bold transition-all duration-300 ${
-                    tab === t
-                      ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] shadow-sm'
-                      : 'text-[var(--on-surface-variant)] font-medium'
-                  }`}
-                >
-                  {t === 'income' ? 'Income' : 'Expense'}
-                </button>
-              ))}
-            </div>
-            <VoiceInputButton
-              hustleNames={activeHustles.map(h => h.name)}
-              onParsed={handleVoiceParsed}
-              disabled={submitting}
-            />
+          {/* Segment Toggle */}
+          <div className="flex p-1 bg-[var(--surface-container)] rounded-full mb-8">
+            {(['income', 'expense'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`flex-1 py-3 px-6 rounded-full font-headline font-bold transition-all duration-300 ${
+                  tab === t
+                    ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] shadow-sm'
+                    : 'text-[var(--on-surface-variant)] font-medium'
+                }`}
+              >
+                {t === 'income' ? 'Income' : 'Expense'}
+              </button>
+            ))}
           </div>
 
           {/* ── INCOME FORM ── */}
@@ -576,27 +580,20 @@ export default function LogPage() {
       <div className="hidden lg:block">
         <main className="pt-8 pb-12 px-8 min-h-screen">
           <div className="max-w-3xl mx-auto flex flex-col gap-8">
-            <div className="flex items-center gap-4">
-              <div className="flex p-1 bg-[var(--surface-container)] rounded-full w-fit">
-                {(['income', 'expense'] as const).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setTab(t)}
-                    className={`px-5 py-2 rounded-full font-label text-[10px] uppercase tracking-[0.08rem] transition-all duration-300 ${
-                      tab === t
-                        ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] font-semibold shadow-sm'
-                        : 'text-[var(--on-surface-variant)] opacity-60 hover:opacity-100'
-                    }`}
-                  >
-                    {t === 'income' ? 'Income' : 'Expense'}
-                  </button>
-                ))}
-              </div>
-              <VoiceInputButton
-                hustleNames={activeHustles.map(h => h.name)}
-                onParsed={handleVoiceParsed}
-                disabled={submitting}
-              />
+            <div className="flex p-1 bg-[var(--surface-container)] rounded-full w-fit">
+              {(['income', 'expense'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-5 py-2 rounded-full font-label text-[10px] uppercase tracking-[0.08rem] transition-all duration-300 ${
+                    tab === t
+                      ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] font-semibold shadow-sm'
+                      : 'text-[var(--on-surface-variant)] opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  {t === 'income' ? 'Income' : 'Expense'}
+                </button>
+              ))}
             </div>
 
             {/* Hero amount */}
