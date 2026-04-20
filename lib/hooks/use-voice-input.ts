@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 
 export type VoiceState = 'idle' | 'requesting' | 'listening' | 'processing' | 'error' | 'unsupported'
 
@@ -190,5 +190,8 @@ export function useVoiceInput(): UseVoiceInputReturn {
     return () => { recognitionRef.current?.abort() }
   }, [])
 
-  return { state, transcript, interimTranscript, errorMessage, isSupported, start, stop, reset }
+  return useMemo(
+    () => ({ state, transcript, interimTranscript, errorMessage, isSupported, start, stop, reset }),
+    [state, transcript, interimTranscript, errorMessage, isSupported, start, stop, reset]
+  )
 }

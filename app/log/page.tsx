@@ -4,12 +4,13 @@ import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Loader2, ArrowRight, TriangleAlert } from 'lucide-react'
+import { Loader2, ArrowRight, TriangleAlert, Mic, MicOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useHustles } from '@/lib/hooks/use-hustles'
 import { useIncome } from '@/lib/hooks/use-income'
 import { useExpenses } from '@/lib/hooks/use-expenses'
 import { useRates } from '@/lib/hooks/use-rates'
+import { useVoiceInput } from '@/lib/hooks/use-voice-input'
 import { resolveSnapshot } from '@/lib/utils/rate-resolver'
 import { calcFuelCost, calcDepreciationCost, calcNetMargin, calcMileagePreviewTotal } from '@/lib/utils/calculations'
 import { formatCurrency, formatGasPrice, formatMpg } from '@/lib/utils/formatters'
@@ -62,24 +63,38 @@ export default function LogPage() {
   const [expenseDate, setExpenseDate] = useState(todayStr())
   const [hasMileageOnDate, setHasMileageOnDate] = useState(false)
 
+  const voice = useVoiceInput()
+  const { state: voiceState, transcript, interimTranscript, errorMessage, isSupported, start, stop, reset: resetVoice } = voice
+
   // Voice input state
   const [voiceParsed, setVoiceParsed] = useState<ParsedVoiceTransaction | null>(null)
 
   const activeHustles = hustles.filter(h => h.is_active)
 
-  // Listen for voice transcript from the nav FAB mic button
+  // Live transcript toast
+  const VOICE_TOAST = 'voice-log-toast'
   useEffect(() => {
-    function onVoiceTranscript(e: Event) {
-      const transcript = (e as CustomEvent<string>).detail
-      if (transcript) {
-        const parsed = parseVoiceTranscript(transcript, activeHustles.map(h => h.name))
-        setVoiceParsed(parsed)
-      }
+    if (voiceState === 'listening' || voiceState === 'processing') {
+      const text = interimTranscript || transcript
+      toast.loading(text ? `🎙 "${text}"` : '🎙 Listening… speak now', { id: VOICE_TOAST, duration: Infinity })
+    } else {
+      toast.dismiss(VOICE_TOAST)
     }
-    window.addEventListener('hustle-voice-transcript', onVoiceTranscript)
-    return () => window.removeEventListener('hustle-voice-transcript', onVoiceTranscript)
+  }, [voiceState, interimTranscript, transcript])
+
+  // Parse final transcript → open preview modal
+  useEffect(() => {
+    if (!transcript) return
+    const parsed = parseVoiceTranscript(transcript, activeHustles.map(h => h.name))
+    setVoiceParsed(parsed)
+    resetVoice()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeHustles])
+  }, [transcript])
+
+  // Error toast
+  useEffect(() => {
+    if (errorMessage) toast.error(errorMessage)
+  }, [errorMessage])
 
   // Check if any income entry on the same date already has mileage tracked
   useEffect(() => {
@@ -208,34 +223,56 @@ export default function LogPage() {
         />
       )}
 
-      {/* Pulse animation for voice recording */}
-      <style>{`
-        @keyframes voice-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(180,60,40,0.4); }
-          50% { box-shadow: 0 0 0 10px rgba(180,60,40,0); }
-        }
-      `}</style>
-
       {/* ══════════════════ MOBILE ══════════════════ */}
       <div className="lg:hidden pb-32 overflow-x-hidden">
 
         <main className="px-6 max-w-lg mx-auto">
 
-          {/* Segment Toggle */}
-          <div className="flex p-1 bg-[var(--surface-container)] rounded-full mb-8">
-            {(['income', 'expense'] as const).map(t => (
+          {/* Segment Toggle + Voice Mic */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="flex flex-1 p-1 bg-[var(--surface-container)] rounded-full">
+              {(['income', 'expense'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`flex-1 py-3 px-6 rounded-full font-headline font-bold transition-all duration-300 ${
+                    tab === t
+                      ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] shadow-sm'
+                      : 'text-[var(--on-surface-variant)] font-medium'
+                  }`}
+                >
+                  {t === 'income' ? 'Income' : 'Expense'}
+                </button>
+              ))}
+            </div>
+            {isSupported && (
               <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 py-3 px-6 rounded-full font-headline font-bold transition-all duration-300 ${
-                  tab === t
-                    ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] shadow-sm'
-                    : 'text-[var(--on-surface-variant)] font-medium'
-                }`}
+                type="button"
+                onClick={() => {
+                  if (voiceState === 'listening') { stop(); return }
+                  if (voiceState === 'error') { resetVoice(); return }
+                  start()
+                }}
+                disabled={voiceState === 'requesting' || voiceState === 'processing'}
+                aria-label={voiceState === 'listening' ? 'Stop recording' : 'Log by voice'}
+                className="relative w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-[0_4px_16px_rgba(2,36,72,0.2)] active:scale-95 transition-all duration-200 disabled:opacity-60"
+                style={{
+                  background: voiceState === 'listening'
+                    ? 'linear-gradient(135deg, var(--expense) 0%, #c0392b 100%)'
+                    : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
+                }}
               >
-                {t === 'income' ? 'Income' : 'Expense'}
+                {voiceState === 'requesting' || voiceState === 'processing'
+                  ? <Loader2 className="w-5 h-5 text-white animate-spin" strokeWidth={1.5} />
+                  : voiceState === 'error'
+                  ? <MicOff className="w-5 h-5 text-white" strokeWidth={1.5} />
+                  : <Mic className="w-5 h-5 text-white" strokeWidth={1.5} />
+                }
+                {voiceState === 'listening' && (
+                  <span className="absolute inset-0 rounded-full animate-ping" style={{ backgroundColor: 'rgba(180,60,40,0.35)' }} />
+                )}
               </button>
-            ))}
+            )}
           </div>
 
           {/* ── INCOME FORM ── */}
@@ -580,20 +617,50 @@ export default function LogPage() {
       <div className="hidden lg:block">
         <main className="pt-8 pb-12 px-8 min-h-screen">
           <div className="max-w-3xl mx-auto flex flex-col gap-8">
-            <div className="flex p-1 bg-[var(--surface-container)] rounded-full w-fit">
-              {(['income', 'expense'] as const).map(t => (
+            <div className="flex items-center gap-3">
+              <div className="flex p-1 bg-[var(--surface-container)] rounded-full w-fit">
+                {(['income', 'expense'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`px-5 py-2 rounded-full font-label text-[10px] uppercase tracking-[0.08rem] transition-all duration-300 ${
+                      tab === t
+                        ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] font-semibold shadow-sm'
+                        : 'text-[var(--on-surface-variant)] opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    {t === 'income' ? 'Income' : 'Expense'}
+                  </button>
+                ))}
+              </div>
+              {isSupported && (
                 <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={`px-5 py-2 rounded-full font-label text-[10px] uppercase tracking-[0.08rem] transition-all duration-300 ${
-                    tab === t
-                      ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] font-semibold shadow-sm'
-                      : 'text-[var(--on-surface-variant)] opacity-60 hover:opacity-100'
-                  }`}
+                  type="button"
+                  onClick={() => {
+                    if (voiceState === 'listening') { stop(); return }
+                    if (voiceState === 'error') { resetVoice(); return }
+                    start()
+                  }}
+                  disabled={voiceState === 'requesting' || voiceState === 'processing'}
+                  aria-label={voiceState === 'listening' ? 'Stop recording' : 'Log by voice'}
+                  className="relative w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-[0_4px_16px_rgba(2,36,72,0.2)] active:scale-95 transition-all duration-200 disabled:opacity-60"
+                  style={{
+                    background: voiceState === 'listening'
+                      ? 'linear-gradient(135deg, var(--expense) 0%, #c0392b 100%)'
+                      : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
+                  }}
                 >
-                  {t === 'income' ? 'Income' : 'Expense'}
+                  {voiceState === 'requesting' || voiceState === 'processing'
+                    ? <Loader2 className="w-4 h-4 text-white animate-spin" strokeWidth={1.5} />
+                    : voiceState === 'error'
+                    ? <MicOff className="w-4 h-4 text-white" strokeWidth={1.5} />
+                    : <Mic className="w-4 h-4 text-white" strokeWidth={1.5} />
+                  }
+                  {voiceState === 'listening' && (
+                    <span className="absolute inset-0 rounded-full animate-ping" style={{ backgroundColor: 'rgba(180,60,40,0.35)' }} />
+                  )}
                 </button>
-              ))}
+              )}
             </div>
 
             {/* Hero amount */}
