@@ -14,6 +14,9 @@ import { resolveSnapshot } from '@/lib/utils/rate-resolver'
 import { calcFuelCost, calcDepreciationCost, calcNetMargin, calcMileagePreviewTotal } from '@/lib/utils/calculations'
 import { formatCurrency, formatGasPrice, formatMpg } from '@/lib/utils/formatters'
 import { EXPENSE_CATEGORIES, IRS_MILEAGE_RATE_DEFAULT } from '@/lib/utils/constants'
+import { VoiceInputButton } from '@/components/log/voice-input-button'
+import { VoicePreviewModal } from '@/components/log/voice-preview-modal'
+import type { ParsedVoiceTransaction } from '@/lib/utils/voice-parser'
 import type { ExpenseEntry } from '@/lib/types'
 
 type Tab = 'income' | 'expense'
@@ -58,6 +61,9 @@ export default function LogPage() {
   const [expenseRecurring, setExpenseRecurring] = useState(false)
   const [expenseDate, setExpenseDate] = useState(todayStr())
   const [hasMileageOnDate, setHasMileageOnDate] = useState(false)
+
+  // Voice input state
+  const [voiceParsed, setVoiceParsed] = useState<ParsedVoiceTransaction | null>(null)
 
   // Check if any income entry on the same date already has mileage tracked
   useEffect(() => {
@@ -133,6 +139,39 @@ export default function LogPage() {
   function handleIncomeSubmit(e: React.FormEvent) { e.preventDefault(); doSubmitIncome() }
   function handleExpenseSubmit(e: React.FormEvent) { e.preventDefault(); doSubmitExpense() }
 
+  function handleVoiceParsed(parsed: ParsedVoiceTransaction) {
+    setVoiceParsed(parsed)
+  }
+
+  function handleVoiceApply(fields: {
+    type: 'income' | 'expense' | null
+    amount: string
+    miles: string
+    category: ExpenseEntry['category']
+    hustleId: string
+    notes: string
+  }) {
+    // Switch tab to match detected type
+    if (fields.type) setTab(fields.type)
+
+    if (fields.type === 'income' || fields.type === null) {
+      if (fields.amount) setIncomeAmount(fields.amount)
+      if (fields.hustleId) setIncomeHustleId(fields.hustleId)
+      if (fields.miles) setIncomeMileage(fields.miles)
+      if (fields.notes) setIncomeDesc(fields.notes)
+    }
+
+    if (fields.type === 'expense' || fields.type === null) {
+      if (fields.amount) setExpenseAmount(fields.amount)
+      if (fields.category) setExpenseCategory(fields.category)
+      if (fields.hustleId) setExpenseHustleId(fields.hustleId)
+      if (fields.notes) setExpenseDesc(fields.notes)
+    }
+
+    setVoiceParsed(null)
+    toast.success('Voice entry applied — review and save.')
+  }
+
   const activeHustles = hustles.filter(h => h.is_active)
   const selectedHustle = useMemo(
     () => activeHustles.find(h => h.id === incomeHustleId) ?? null,
@@ -148,26 +187,51 @@ export default function LogPage() {
   return (
     <div className="min-h-screen bg-[var(--surface)]">
 
+      {/* Voice Preview Modal */}
+      {voiceParsed && (
+        <VoicePreviewModal
+          parsed={voiceParsed}
+          hustles={hustles}
+          onApply={handleVoiceApply}
+          onDismiss={() => setVoiceParsed(null)}
+        />
+      )}
+
+      {/* Pulse animation for voice recording */}
+      <style>{`
+        @keyframes voice-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(180,60,40,0.4); }
+          50% { box-shadow: 0 0 0 10px rgba(180,60,40,0); }
+        }
+      `}</style>
+
       {/* ══════════════════ MOBILE ══════════════════ */}
       <div className="lg:hidden pb-32 overflow-x-hidden">
 
         <main className="px-6 max-w-lg mx-auto">
 
-          {/* Segment Toggle */}
-          <div className="flex p-1 bg-[var(--surface-container)] rounded-full mb-8">
-            {(['income', 'expense'] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 py-3 px-6 rounded-full font-headline font-bold transition-all duration-300 ${
-                  tab === t
-                    ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] shadow-sm'
-                    : 'text-[var(--on-surface-variant)] font-medium'
-                }`}
-              >
-                {t === 'income' ? 'Income' : 'Expense'}
-              </button>
-            ))}
+          {/* Segment Toggle + Voice Button */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="flex flex-1 p-1 bg-[var(--surface-container)] rounded-full">
+              {(['income', 'expense'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`flex-1 py-3 px-6 rounded-full font-headline font-bold transition-all duration-300 ${
+                    tab === t
+                      ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] shadow-sm'
+                      : 'text-[var(--on-surface-variant)] font-medium'
+                  }`}
+                >
+                  {t === 'income' ? 'Income' : 'Expense'}
+                </button>
+              ))}
+            </div>
+            <VoiceInputButton
+              hustleNames={activeHustles.map(h => h.name)}
+              onParsed={handleVoiceParsed}
+              disabled={submitting}
+            />
           </div>
 
           {/* ── INCOME FORM ── */}
@@ -512,20 +576,27 @@ export default function LogPage() {
       <div className="hidden lg:block">
         <main className="pt-8 pb-12 px-8 min-h-screen">
           <div className="max-w-3xl mx-auto flex flex-col gap-8">
-            <div className="flex p-1 bg-[var(--surface-container)] rounded-full w-fit">
-              {(['income', 'expense'] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={`px-5 py-2 rounded-full font-label text-[10px] uppercase tracking-[0.08rem] transition-all duration-300 ${
-                    tab === t
-                      ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] font-semibold shadow-sm'
-                      : 'text-[var(--on-surface-variant)] opacity-60 hover:opacity-100'
-                  }`}
-                >
-                  {t === 'income' ? 'Income' : 'Expense'}
-                </button>
-              ))}
+            <div className="flex items-center gap-4">
+              <div className="flex p-1 bg-[var(--surface-container)] rounded-full w-fit">
+                {(['income', 'expense'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`px-5 py-2 rounded-full font-label text-[10px] uppercase tracking-[0.08rem] transition-all duration-300 ${
+                      tab === t
+                        ? 'bg-[var(--surface-container-lowest)] text-[var(--primary)] font-semibold shadow-sm'
+                        : 'text-[var(--on-surface-variant)] opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    {t === 'income' ? 'Income' : 'Expense'}
+                  </button>
+                ))}
+              </div>
+              <VoiceInputButton
+                hustleNames={activeHustles.map(h => h.name)}
+                onParsed={handleVoiceParsed}
+                disabled={submitting}
+              />
             </div>
 
             {/* Hero amount */}
