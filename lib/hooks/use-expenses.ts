@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { getCached, setCached, invalidateCache } from '@/lib/utils/query-cache'
 import type { ExpenseEntry } from '@/lib/types'
 
 export interface ExpenseFilters {
@@ -13,8 +14,9 @@ export interface ExpenseFilters {
 }
 
 export function useExpenses(filters?: ExpenseFilters) {
-  const [entries, setEntries] = useState<ExpenseEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const cacheKey = `expenses:${filters?.hustle_id ?? ''}:${filters?.date_from ?? ''}:${filters?.date_to ?? ''}:${filters?.category ?? ''}`
+  const [entries, setEntries] = useState<ExpenseEntry[]>(() => getCached<ExpenseEntry[]>(cacheKey) ?? [])
+  const [loading, setLoading] = useState(() => !getCached<ExpenseEntry[]>(cacheKey))
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -30,9 +32,11 @@ export function useExpenses(filters?: ExpenseFilters) {
     if (filters?.category) query = query.eq('category', filters.category)
 
     const { data } = await query
-    setEntries((data ?? []) as ExpenseEntry[])
+    const result = (data ?? []) as ExpenseEntry[]
+    setCached(cacheKey, result)
+    setEntries(result)
     setLoading(false)
-  }, [filters?.hustle_id, filters?.date_from, filters?.date_to, filters?.category]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filters?.hustle_id, filters?.date_from, filters?.date_to, filters?.category, cacheKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load() }, [load])
 
@@ -57,6 +61,8 @@ export function useExpenses(filters?: ExpenseFilters) {
       date: data.date,
     })
     if (error) { toast.error(error.message); return false }
+    invalidateCache(cacheKey)
+    invalidateCache('dashboard:raw')
     await load()
     return true
   }
@@ -72,6 +78,8 @@ export function useExpenses(filters?: ExpenseFilters) {
     const supabase = createClient()
     const { error } = await supabase.from('expenses').update(data).eq('id', id)
     if (error) { toast.error(error.message); return false }
+    invalidateCache(cacheKey)
+    invalidateCache('dashboard:raw')
     await load()
     return true
   }
@@ -80,6 +88,8 @@ export function useExpenses(filters?: ExpenseFilters) {
     const supabase = createClient()
     const { error } = await supabase.from('expenses').delete().eq('id', id)
     if (error) { toast.error(error.message); return false }
+    invalidateCache(cacheKey)
+    invalidateCache('dashboard:raw')
     await load()
     return true
   }

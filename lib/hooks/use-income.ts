@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { resolveSnapshot } from '@/lib/utils/rate-resolver'
 import { calcFuelCost, calcDepreciationCost, calcMileageDeduction } from '@/lib/utils/calculations'
+import { getCached, setCached, invalidateCache } from '@/lib/utils/query-cache'
 import type { IncomeEntry, RateSnapshot } from '@/lib/types'
 
 export interface IncomeFilters {
@@ -14,8 +15,9 @@ export interface IncomeFilters {
 }
 
 export function useIncome(filters?: IncomeFilters) {
-  const [entries, setEntries] = useState<IncomeEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const cacheKey = `income:${filters?.hustle_id ?? ''}:${filters?.date_from ?? ''}:${filters?.date_to ?? ''}`
+  const [entries, setEntries] = useState<IncomeEntry[]>(() => getCached<IncomeEntry[]>(cacheKey) ?? [])
+  const [loading, setLoading] = useState(() => !getCached<IncomeEntry[]>(cacheKey))
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -30,9 +32,11 @@ export function useIncome(filters?: IncomeFilters) {
     if (filters?.date_to) query = query.lte('date', filters.date_to)
 
     const { data } = await query
-    setEntries((data ?? []) as IncomeEntry[])
+    const result = (data ?? []) as IncomeEntry[]
+    setCached(cacheKey, result)
+    setEntries(result)
     setLoading(false)
-  }, [filters?.hustle_id, filters?.date_from, filters?.date_to]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filters?.hustle_id, filters?.date_from, filters?.date_to, cacheKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load() }, [load])
 
@@ -90,6 +94,8 @@ export function useIncome(filters?: IncomeFilters) {
     })
 
     if (error) { toast.error(error.message); return false }
+    invalidateCache(cacheKey)
+    invalidateCache('dashboard:raw')
     await load()
     return true
   }
@@ -137,6 +143,8 @@ export function useIncome(filters?: IncomeFilters) {
 
     const { error } = await supabase.from('income').update(updatedData).eq('id', id)
     if (error) { toast.error(error.message); return false }
+    invalidateCache(cacheKey)
+    invalidateCache('dashboard:raw')
     await load()
     return true
   }
@@ -145,6 +153,8 @@ export function useIncome(filters?: IncomeFilters) {
     const supabase = createClient()
     const { error } = await supabase.from('income').delete().eq('id', id)
     if (error) { toast.error(error.message); return false }
+    invalidateCache(cacheKey)
+    invalidateCache('dashboard:raw')
     await load()
     return true
   }
