@@ -415,6 +415,19 @@ export default function SettingsPage() {
                   />
                 </div>
               </button>
+              <div className="border-t border-[var(--outline-variant)] opacity-20 my-2" />
+              <a
+                href="/devpower"
+                className="w-full flex items-center justify-between gap-4 py-2"
+              >
+                <div className="text-left">
+                  <p className="font-label text-sm font-bold text-[var(--primary)]">Dev Power Tools</p>
+                  <p className="font-body text-xs text-[var(--on-surface-variant)] mt-1">
+                    Feature flags, database inspection, and developer utilities.
+                  </p>
+                </div>
+                <span className="font-label text-xs uppercase tracking-widest text-[var(--on-surface-variant)] flex-shrink-0">Open →</span>
+              </a>
             </div>
           </section>
 
