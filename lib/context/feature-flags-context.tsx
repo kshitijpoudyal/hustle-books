@@ -52,8 +52,16 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
       const resolved = await loadUserFlags(user.id)
       keyToIdRef.current = resolved.keyToId
       setPublicFlagKeys(resolved.publicFlagKeys)
-      setStored(resolved.stored)
-      saveFlags(resolved.stored)
+
+      // DB enrollment only records 'true' (enrolled). Merge in any explicit
+      // false overrides the user has set locally so they survive a page reload.
+      const localStored = loadFlags()
+      const merged: Record<string, boolean> = { ...resolved.stored }
+      for (const [k, v] of Object.entries(localStored)) {
+        if (v === false) merged[k] = false
+      }
+      setStored(merged)
+      saveFlags(merged)
     }
     load()
   }, [])
@@ -65,12 +73,7 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
 
   const setFlag = useCallback((key: FlagKey, value: boolean) => {
     setStored(prev => {
-      const next = { ...prev }
-      if (value) {
-        next[key] = true
-      } else {
-        delete next[key]
-      }
+      const next = { ...prev, [key]: value }
       saveFlags(next)
 
       const userId = userIdRef.current

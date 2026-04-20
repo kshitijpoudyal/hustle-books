@@ -20,6 +20,13 @@ export const FLAG_REGISTRY: FlagDefinition[] = [
     defaultValue: false,
     tag: 'experimental',
   },
+  {
+    key: 'GOAL_MILESTONES',
+    label: 'Goal Milestones',
+    description: 'Confetti, toasts, and card glow when hitting 25%, 50%, 75%, or 100% of a goal.',
+    defaultValue: true,
+    tag: 'wip',
+  },
 ]
 
 export type FlagKey = (typeof FLAG_REGISTRY)[number]['key']
