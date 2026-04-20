@@ -1,6 +1,7 @@
 export interface Profile {
   id: string
   full_name: string | null
+  feature_flags: Record<string, boolean>
   settings: {
     mileage_method: 'actual' | 'irs'
     currency: string
