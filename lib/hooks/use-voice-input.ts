@@ -136,22 +136,22 @@ export function useVoiceInput(): UseVoiceInputReturn {
       switch (event.error) {
         case 'not-allowed':
         case 'service-not-allowed':
-          message = 'Microphone access was denied. Please allow microphone permission and try again.'
+          message = 'Microphone permission denied. Check your browser site settings and try again.'
           break
         case 'no-speech':
-          message = 'No speech was detected. Please try speaking clearly near your microphone.'
+          message = 'No speech detected. Speak clearly and try again.'
           break
         case 'network':
-          message = 'Network error. Speech recognition requires an internet connection.'
+          message = 'Network error. Speech recognition needs an internet connection.'
           break
         case 'audio-capture':
-          message = 'No microphone found. Please connect a microphone and try again.'
+          message = 'Could not access the microphone (audio-capture). It may be in use by another app or tab — close them and try again.'
           break
         case 'aborted':
           setState('idle')
           return
         default:
-          message = `Speech recognition failed (${event.error}). Please try again.`
+          message = `Speech recognition failed [${event.error}]. Try again.`
       }
       setErrorMessage(message)
       setState('error')
