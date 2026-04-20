@@ -43,7 +43,7 @@ export default function SettingsPage() {
   const router = useRouter()
   const { profile, email, loading: profileLoading, updateProfile, signOut } = useProfile()
   const { activeSnapshot, loading: ratesLoading } = useRates()
-  const { includeDeprInProfit, includeTaxInProfit, showCalculatorFab, updateSettings } = useUserSettings()
+  const { includeDeprInProfit, includeTaxInProfit, showCalculatorFab, goalAnimations, updateSettings } = useUserSettings()
   const { canInstall, installState, isInstalled, promptInstall } = usePWAInstall()
 
   const [fullName, setFullName] = useState('')
@@ -88,6 +88,10 @@ export default function SettingsPage() {
 
   async function handleToggleCalculatorFab(val: boolean) {
     await updateSettings({ show_calculator_fab: val })
+  }
+
+  async function handleToggleGoalAnimations(val: boolean) {
+    await updateSettings({ goal_animations: val })
   }
 
   async function handleSaveName() {
@@ -415,6 +419,28 @@ export default function SettingsPage() {
                   />
                 </div>
               </button>
+              <div className="border-t border-[var(--outline-variant)] opacity-20 my-2" />
+              <button
+                type="button"
+                onClick={() => handleToggleGoalAnimations(!goalAnimations)}
+                className="w-full flex items-center justify-between gap-4 py-2"
+              >
+                <div className="text-left">
+                  <p className="font-label text-sm font-bold text-[var(--primary)]">Goal milestone animations</p>
+                  <p className="font-body text-xs text-[var(--on-surface-variant)] mt-1">
+                    Show confetti, toasts, and glow effects when you hit 25%, 50%, 75%, or 100% of a goal.
+                  </p>
+                </div>
+                <div
+                  className="relative flex-shrink-0 w-12 h-7 rounded-full transition-colors duration-200"
+                  style={{ backgroundColor: goalAnimations ? 'var(--primary)' : 'var(--surface-container-highest)' }}
+                >
+                  <div
+                    className="absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                    style={{ transform: goalAnimations ? 'translateX(1.4rem)' : 'translateX(0.2rem)' }}
+                  />
+                </div>
+              </button>
             </div>
           </section>
 
@@ -726,6 +752,25 @@ export default function SettingsPage() {
                 <div
                   className="absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200"
                   style={{ transform: showCalculatorFab ? 'translateX(1.6rem)' : 'translateX(0.25rem)' }}
+                />
+              </button>
+            </div>
+            <div className="bg-[var(--surface-container-low)] squircle p-8 flex items-center justify-between gap-8 mt-4">
+              <div>
+                <p className="font-headline font-bold text-[var(--primary)]">Goal milestone animations</p>
+                <p className="font-body text-sm text-[var(--on-surface-variant)] mt-1">
+                  Show confetti, toast notifications, and progress glow when hitting 25%, 50%, 75%, or 100% of a goal.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggleGoalAnimations(!goalAnimations)}
+                className="relative flex-shrink-0 w-14 h-8 rounded-full transition-colors duration-200"
+                style={{ backgroundColor: goalAnimations ? 'var(--primary)' : 'var(--surface-container-highest)' }}
+              >
+                <div
+                  className="absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200"
+                  style={{ transform: goalAnimations ? 'translateX(1.6rem)' : 'translateX(0.25rem)' }}
                 />
               </button>
             </div>
