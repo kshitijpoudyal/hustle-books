@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation'
 import Nav from './nav'
 import { UserSettingsProvider } from '@/lib/context/user-settings-context'
 import CalculatorFab from '@/components/calculator/calculator-fab'
+import InstallBanner from '@/components/shared/install-banner'
+import ServiceWorkerRegistration from '@/components/shared/service-worker-registration'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -17,6 +19,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </div>
       {showNav && <CalculatorFab />}
+      {showNav && <InstallBanner />}
+      {showNav && <ServiceWorkerRegistration />}
     </UserSettingsProvider>
   )
 }

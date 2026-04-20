@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, LogOut, TrendingDown, ChevronRight } from 'lucide-react'
+import { AlertTriangle, LogOut, TrendingDown, ChevronRight, Download, CheckCircle, Smartphone } from 'lucide-react'
 import { toast } from 'sonner'
 import { useProfile } from '@/lib/hooks/use-profile'
 import { useRates } from '@/lib/hooks/use-rates'
 import { useUserSettings } from '@/lib/context/user-settings-context'
+import { usePWAInstall } from '@/lib/hooks/use-pwa-install'
 import { calcDepreciationPerMile } from '@/lib/utils/calculations'
 import {
   formatGasPrice,
@@ -43,6 +44,7 @@ export default function SettingsPage() {
   const { profile, email, loading: profileLoading, updateProfile, signOut } = useProfile()
   const { activeSnapshot, loading: ratesLoading } = useRates()
   const { includeDeprInProfit, includeTaxInProfit, showCalculatorFab, updateSettings } = useUserSettings()
+  const { canInstall, installState, isInstalled, promptInstall } = usePWAInstall()
 
   const [fullName, setFullName] = useState('')
   const [vehicleYear, setVehicleYear] = useState('')
@@ -416,6 +418,72 @@ export default function SettingsPage() {
             </div>
           </section>
 
+          {/* Install App */}
+          <section className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+            <div className="md:col-span-4">
+              <h2 className="font-headline font-extrabold text-3xl tracking-tight text-[var(--primary)]">Install App</h2>
+              <p className="text-[var(--on-surface-variant)] mt-2 font-body text-sm">Add HustleBooks to your home screen.</p>
+            </div>
+            <div className="md:col-span-8 bg-[var(--surface-container-low)] rounded-[1rem] p-8">
+              {isInstalled || installState === 'accepted' ? (
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--secondary-container)' }}>
+                    <CheckCircle className="w-6 h-6" style={{ color: 'var(--primary)' }} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <p className="font-headline font-bold text-[var(--primary)]">App Installed</p>
+                    <p className="font-body text-xs text-[var(--on-surface-variant)] mt-0.5">HustleBooks is running as a native app.</p>
+                  </div>
+                </div>
+              ) : canInstall ? (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--surface-container-high)' }}>
+                      <Smartphone className="w-6 h-6 text-[var(--primary)]" strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <p className="font-headline font-bold text-[var(--primary)]">Install HustleBooks</p>
+                      <p className="font-body text-xs text-[var(--on-surface-variant)] mt-0.5">Works offline and launches like a native app.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await promptInstall()
+                    }}
+                    className="w-full py-4 rounded-full text-white font-headline font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                    style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
+                  >
+                    <Download className="w-4 h-4" strokeWidth={2} />
+                    Install App
+                  </button>
+                </div>
+              ) : installState === 'dismissed' ? (
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--surface-container-high)' }}>
+                    <Smartphone className="w-6 h-6 text-[var(--on-surface-variant)]" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <p className="font-headline font-bold text-[var(--primary)]">Installation Declined</p>
+                    <p className="font-body text-xs text-[var(--on-surface-variant)] mt-0.5">Reload the page to try again.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--surface-container-high)' }}>
+                    <Smartphone className="w-6 h-6 text-[var(--on-surface-variant)]" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <p className="font-headline font-bold text-[var(--primary)]">Install HustleBooks</p>
+                    <p className="font-body text-xs text-[var(--on-surface-variant)] mt-0.5">
+                      On iOS: tap <span className="font-bold">Share →</span> then <span className="font-bold">Add to Home Screen</span>.
+                      On Android: use <span className="font-bold">Chrome menu → Install app</span>.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* Sign Out */}
           <div className="flex justify-center pt-4">
             <button
@@ -662,6 +730,7 @@ export default function SettingsPage() {
               </button>
             </div>
           </section>
+
 
           {/* Footer actions */}
           <footer className="mt-20 flex justify-end gap-4">
