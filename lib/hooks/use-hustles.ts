@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { getCached, setCached, invalidateCache } from '@/lib/utils/query-cache'
+import { getHustles, createHustle, editHustle, removeHustle } from '@/lib/services/hustles'
 import type { Hustle } from '@/lib/types'
 import type { HustleCategory } from '@/lib/utils/constants'
 
@@ -14,12 +14,7 @@ export function useHustles() {
   const [loading, setLoading] = useState(() => !getCached<Hustle[]>(CACHE_KEY))
 
   const load = useCallback(async () => {
-    const supabase = createClient()
-    const { data } = await supabase
-      .from('hustles')
-      .select('*')
-      .order('created_at', { ascending: true })
-    const result = data ?? []
+    const result = await getHustles()
     setCached(CACHE_KEY, result)
     setHustles(result)
     setLoading(false)
@@ -27,34 +22,37 @@ export function useHustles() {
 
   useEffect(() => { load() }, [load])
 
-  async function createHustle(data: { name: string; color: string; icon: string; category?: HustleCategory | null }) {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { toast.error('Not authenticated'); return false }
-    const { error } = await supabase.from('hustles').insert({ ...data, user_id: user.id })
-    if (error) { toast.error(error.message); return false }
+  async function createHustleHandler(data: { name: string; color: string; icon: string; category?: HustleCategory | null }) {
+    const result = await createHustle(data)
+    if (!result.ok) { toast.error(result.error); return false }
     invalidateCache(CACHE_KEY)
     await load()
     return true
   }
 
-  async function updateHustle(id: string, data: Partial<Pick<Hustle, 'name' | 'color' | 'icon' | 'is_active' | 'category'>>) {
-    const supabase = createClient()
-    const { error } = await supabase.from('hustles').update(data).eq('id', id)
-    if (error) { toast.error(error.message); return false }
+  async function updateHustleHandler(id: string, data: Partial<Pick<Hustle, 'name' | 'color' | 'icon' | 'is_active' | 'category'>>) {
+    const result = await editHustle(id, data)
+    if (!result.ok) { toast.error(result.error); return false }
     invalidateCache(CACHE_KEY)
     await load()
     return true
   }
 
-  async function deleteHustle(id: string) {
-    const supabase = createClient()
-    const { error } = await supabase.from('hustles').delete().eq('id', id)
-    if (error) { toast.error(error.message); return false }
+  async function deleteHustleHandler(id: string) {
+    const result = await removeHustle(id)
+    if (!result.ok) { toast.error(result.error); return false }
     invalidateCache(CACHE_KEY)
     await load()
     return true
   }
 
-  return { hustles, loading, createHustle, updateHustle, deleteHustle, refresh: load }
+  return {
+    hustles,
+    loading,
+    createHustle: createHustleHandler,
+    updateHustle: updateHustleHandler,
+    deleteHustle: deleteHustleHandler,
+    refresh: load,
+  }
 }
+

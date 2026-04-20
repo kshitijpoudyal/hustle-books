@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { fetchDashboardRaw } from '@/lib/data/dashboard'
 import { calcNetProfit, calcTaxSetAside } from '@/lib/utils/calculations'
 import { daysSince } from '@/lib/utils/formatters'
 import { getCached, setCached } from '@/lib/utils/query-cache'
 import { useUserSettings } from '@/lib/context/user-settings-context'
-import type { RateSnapshot, Hustle, IncomeEntry, ExpenseEntry, TransactionEntry } from '@/lib/types'
+import type { RateSnapshot, Hustle, TransactionEntry } from '@/lib/types'
+import type { DashboardRaw } from '@/lib/data/dashboard'
 
 export type Period = 'today' | 'week' | 'month' | 'year' | 'all'
 
@@ -50,8 +51,8 @@ export interface DashboardData {
   error: string | null
 }
 
-type RawIncome = Pick<IncomeEntry, 'amount' | 'hustle_id' | 'fuel_cost_at_log' | 'depreciation_cost_at_log' | 'mileage' | 'cogs' | 'is_taxable' | 'date'>
-type RawExpense = Pick<ExpenseEntry, 'amount' | 'hustle_id' | 'date'>
+type RawIncome = DashboardRaw['allIncome'][number]
+type RawExpense = DashboardRaw['allExpenses'][number]
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -195,34 +196,9 @@ export function useDashboard(period: Period = 'month', customRange?: { start: st
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient()
-      const today = new Date().toISOString().split('T')[0]
-
       try {
-        const [incomeRes, expensesRes, hustlesRes, snapshotRes, recentIncomeRes, recentExpensesRes] = await Promise.all([
-          supabase.from('income').select('amount, hustle_id, fuel_cost_at_log, depreciation_cost_at_log, mileage, cogs, is_taxable, date'),
-          supabase.from('expenses').select('amount, hustle_id, date'),
-          supabase.from('hustles').select('*').eq('is_active', true).order('created_at', { ascending: true }),
-          supabase.from('rate_snapshots').select('*').lte('effective_date', today).order('effective_date', { ascending: false }).limit(1).single(),
-          supabase.from('income').select('*, hustle:hustles(id, name, color, icon)').order('date', { ascending: false }).order('created_at', { ascending: false }).limit(5),
-          supabase.from('expenses').select('*, hustle:hustles(id, name, color, icon)').order('date', { ascending: false }).order('created_at', { ascending: false }).limit(5),
-        ])
-
-        const recentIncome: TransactionEntry[] = (recentIncomeRes.data ?? []).map((r: IncomeEntry) => ({ ...r, entry_type: 'income' as const }))
-        const recentExpenses: TransactionEntry[] = (recentExpensesRes.data ?? []).map((r: ExpenseEntry) => ({ ...r, entry_type: 'expense' as const }))
-        const recentActivity = [...recentIncome, ...recentExpenses]
-          .sort((a, b) => b.date !== a.date ? b.date.localeCompare(a.date) : b.created_at.localeCompare(a.created_at))
-          .slice(0, 5)
-
-        const next: RawState = {
-          allIncome: (incomeRes.data ?? []) as RawIncome[],
-          allExpenses: (expensesRes.data ?? []) as RawExpense[],
-          hustles: hustlesRes.data ?? [],
-          activeSnapshot: snapshotRes.data ?? null,
-          recentActivity,
-          loading: false,
-          error: null,
-        }
+        const data = await fetchDashboardRaw()
+        const next: RawState = { ...data, loading: false, error: null }
         setCached(CACHE_KEY, next)
         setRaw(next)
       } catch (err) {

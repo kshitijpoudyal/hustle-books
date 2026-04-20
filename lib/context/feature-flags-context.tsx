@@ -11,49 +11,51 @@ import {
 import {
   loadFlags,
   saveFlags,
-  resolveFlag,
   type FlagKey,
 } from '@/lib/feature-flags'
+import {
+  loadUserFlags,
+  enableFlag,
+  disableFlag,
+  resolveFlag,
+} from '@/lib/services/feature-flags'
 import { createClient } from '@/lib/supabase/client'
 
 interface FeatureFlagsContextValue {
-  /** Check if a flag is enabled */
   flag: (key: FlagKey) => boolean
-  /** Toggle or set a specific flag */
   setFlag: (key: FlagKey, value: boolean) => void
-  /** Raw stored overrides (used by /devpower) */
   stored: Record<string, boolean>
+  publicFlagKeys: Set<string>
 }
 
 const FeatureFlagsContext = createContext<FeatureFlagsContextValue>({
   flag: (key) => resolveFlag({}, key),
   setFlag: () => {},
   stored: {},
+  publicFlagKeys: new Set(),
 })
 
 export function FeatureFlagsProvider({ children }: { children: React.ReactNode }) {
-  // Seed from localStorage immediately so there's no flicker on mount
   const [stored, setStored] = useState<Record<string, boolean>>(() => loadFlags())
+  const [publicFlagKeys, setPublicFlagKeys] = useState<Set<string>>(new Set())
+
+  const keyToIdRef = useRef<Record<string, string>>({})
   const userIdRef = useRef<string | null>(null)
 
-  // On mount, pull flags from Supabase and merge (remote wins over stale localStorage)
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    async function load() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       userIdRef.current = user.id
-      supabase
-        .from('profiles')
-        .select('feature_flags')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          if (!data) return
-          const remote = (data.feature_flags ?? {}) as Record<string, boolean>
-          setStored(remote)
-          saveFlags(remote) // keep localStorage in sync
-        })
-    })
+
+      const resolved = await loadUserFlags(user.id)
+      keyToIdRef.current = resolved.keyToId
+      setPublicFlagKeys(resolved.publicFlagKeys)
+      setStored(resolved.stored)
+      saveFlags(resolved.stored)
+    }
+    load()
   }, [])
 
   const flag = useCallback(
@@ -63,26 +65,31 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
 
   const setFlag = useCallback((key: FlagKey, value: boolean) => {
     setStored(prev => {
-      const next = { ...prev, [key]: value }
-      // Optimistically persist to localStorage for instant feedback
-      saveFlags(next)
-      // Persist to Supabase in the background
-      if (userIdRef.current) {
-        const supabase = createClient()
-        supabase
-          .from('profiles')
-          .update({ feature_flags: next })
-          .eq('id', userIdRef.current)
-          .then(({ error }) => {
-            if (error) console.error('[FeatureFlags] failed to persist to Supabase:', error.message)
-          })
+      const next = { ...prev }
+      if (value) {
+        next[key] = true
+      } else {
+        delete next[key]
       }
+      saveFlags(next)
+
+      const userId = userIdRef.current
+      if (userId) {
+        if (value) {
+          enableFlag(userId, key, keyToIdRef.current)
+            .then(r => { if (!r.ok) console.error('[FeatureFlags] enable error:', r.error) })
+        } else {
+          disableFlag(userId, key, keyToIdRef.current)
+            .then(r => { if (!r.ok) console.error('[FeatureFlags] disable error:', r.error) })
+        }
+      }
+
       return next
     })
   }, [])
 
   return (
-    <FeatureFlagsContext.Provider value={{ flag, setFlag, stored }}>
+    <FeatureFlagsContext.Provider value={{ flag, setFlag, stored, publicFlagKeys }}>
       {children}
     </FeatureFlagsContext.Provider>
   )

@@ -2,7 +2,7 @@
 
 import { FLAG_REGISTRY, resolveFlag } from '@/lib/feature-flags'
 import { useFeatureFlags } from '@/lib/context/feature-flags-context'
-import { Terminal, FlaskConical, Wrench, Circle } from 'lucide-react'
+import { Terminal, Wrench, Circle } from 'lucide-react'
 
 const TAG_META: Record<string, { label: string; color: string }> = {
   experimental: { label: 'Experimental', color: '#f59e0b' },
@@ -11,7 +11,11 @@ const TAG_META: Record<string, { label: string; color: string }> = {
 }
 
 export default function DevPowerPage() {
-  const { flag, setFlag, stored } = useFeatureFlags()
+  const { flag, setFlag, stored, publicFlagKeys } = useFeatureFlags()
+
+  // Only show flags that are marked is_public=true in the DB
+  // While publicFlagKeys is loading (empty set), show nothing to avoid flicker
+  const visibleFlags = FLAG_REGISTRY.filter(def => publicFlagKeys.has(def.key))
 
   return (
     <div className="min-h-screen p-6 max-w-lg mx-auto space-y-8 font-mono">
@@ -23,11 +27,11 @@ export default function DevPowerPage() {
           <h1 className="text-xl font-bold tracking-tight">devpower</h1>
         </div>
         <p className="text-xs text-[var(--on-surface-variant)]">
-          HustleBooks · feature flags · localhost/devpower
+          HustleBooks · feature flags · /devpower
         </p>
         <p className="text-[10px] text-[var(--on-surface-variant)] opacity-60">
-          Changes are persisted to localStorage and take effect immediately.
-          Not visible to end users.
+          Changes persist to your account and take effect immediately.
+          Set <code>is_public = true</code> on a flag in the DB to surface it here.
         </p>
       </div>
 
@@ -36,9 +40,15 @@ export default function DevPowerPage() {
 
       {/* Flag list */}
       <div className="space-y-3">
-        {FLAG_REGISTRY.map((def) => {
+        {visibleFlags.length === 0 && (
+          <p className="text-xs text-[var(--on-surface-variant)] opacity-60">
+            No public flags yet. Set <code>is_public = true</code> on a row in the <code>feature_flags</code> table.
+          </p>
+        )}
+
+        {visibleFlags.map((def) => {
           const enabled = flag(def.key as Parameters<typeof flag>[0])
-          const isOverridden = def.key in stored
+          const isEnabled = def.key in stored
           const tagMeta = def.tag ? TAG_META[def.tag] : null
 
           return (
@@ -65,11 +75,11 @@ export default function DevPowerPage() {
                         {tagMeta.label}
                       </span>
                     )}
-                    {isOverridden && (
+                    {isEnabled && (
                       <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full font-bold"
                         style={{ backgroundColor: 'var(--surface-container-highest)', color: 'var(--on-surface-variant)' }}
                       >
-                        overridden
+                        enrolled
                       </span>
                     )}
                   </div>
@@ -119,7 +129,7 @@ export default function DevPowerPage() {
       {/* Footer */}
       <div className="pt-4 flex items-center gap-2 text-[10px] text-[var(--on-surface-variant)] opacity-50">
         <Wrench className="w-3 h-3" />
-        <span>Add flags to lib/feature-flags.ts · they appear here automatically.</span>
+        <span>Add flags to lib/feature-flags.ts · set is_public=true in DB to show here.</span>
       </div>
     </div>
   )
