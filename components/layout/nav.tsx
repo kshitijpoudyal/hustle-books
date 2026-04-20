@@ -74,21 +74,50 @@ export function MobileHeader() {
   )
 }
 
-/* ── Log FAB — PlusCircle on other pages, Mic on /log ────────────────────── */
-function LogFAB({ isOnLogPage }: { isOnLogPage: boolean }) {
-  const { state, transcript, errorMessage, isSupported, start, stop, reset } = useVoiceInput()
+/* ── Shared voice logic hook used by both nav mic buttons ─────────────────── */
+const VOICE_TOAST_ID = 'voice-live-transcript'
 
-  // Forward raw transcript to the log page via a custom event
+function useNavVoice() {
+  const voice = useVoiceInput()
+  const { state, transcript, interimTranscript, errorMessage } = voice
+
+  // Show / update a persistent toast while listening
+  useEffect(() => {
+    if (state === 'listening') {
+      toast.loading(
+        interimTranscript
+          ? `🎙 "${interimTranscript}"`
+          : '🎙 Listening… speak now',
+        { id: VOICE_TOAST_ID, duration: Infinity }
+      )
+    }
+  }, [state, interimTranscript])
+
+  // Dismiss live toast when done
+  useEffect(() => {
+    if (state !== 'listening' && state !== 'requesting') {
+      toast.dismiss(VOICE_TOAST_ID)
+    }
+  }, [state])
+
+  // Forward final transcript to log page
   useEffect(() => {
     if (transcript) {
       window.dispatchEvent(new CustomEvent('hustle-voice-transcript', { detail: transcript }))
     }
   }, [transcript])
 
-  // Errors → toast (no inline UI clutter)
+  // Errors → toast
   useEffect(() => {
     if (errorMessage) toast.error(errorMessage)
   }, [errorMessage])
+
+  return voice
+}
+
+/* ── Log FAB — PlusCircle on other pages, Mic on /log ────────────────────── */
+function LogFAB({ isOnLogPage }: { isOnLogPage: boolean }) {
+  const { state, isSupported, start, stop, reset } = useNavVoice()
 
   const isListening = state === 'listening'
   const isLoading = state === 'requesting' || state === 'processing'
@@ -152,17 +181,7 @@ function LogFAB({ isOnLogPage }: { isOnLogPage: boolean }) {
 
 /* ── Desktop sidebar Log CTA — link or mic button ────────────────────────── */
 function DesktopLogCTA({ isOnLogPage }: { isOnLogPage: boolean }) {
-  const { state, transcript, errorMessage, isSupported, start, stop, reset } = useVoiceInput()
-
-  useEffect(() => {
-    if (transcript) {
-      window.dispatchEvent(new CustomEvent('hustle-voice-transcript', { detail: transcript }))
-    }
-  }, [transcript])
-
-  useEffect(() => {
-    if (errorMessage) toast.error(errorMessage)
-  }, [errorMessage])
+  const { state, isSupported, start, stop, reset } = useNavVoice()
 
   const isListening = state === 'listening'
   const isLoading = state === 'requesting' || state === 'processing'

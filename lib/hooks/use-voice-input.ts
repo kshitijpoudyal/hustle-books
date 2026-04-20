@@ -7,6 +7,7 @@ export type VoiceState = 'idle' | 'requesting' | 'listening' | 'processing' | 'e
 export interface UseVoiceInputReturn {
   state: VoiceState
   transcript: string
+  interimTranscript: string
   errorMessage: string | null
   isSupported: boolean
   start: () => void
@@ -25,13 +26,13 @@ interface SpeechRecognitionResult {
   readonly length: number
   readonly isFinal: boolean
 }
-
 interface SpeechRecognitionResultList {
   readonly [index: number]: SpeechRecognitionResult
   readonly length: number
 }
 
 interface SpeechRecognitionEvent extends Event {
+  readonly resultIndex: number
   readonly results: SpeechRecognitionResultList
 }
 
@@ -68,6 +69,7 @@ declare global {
 export function useVoiceInput(): UseVoiceInputReturn {
   const [state, setState] = useState<VoiceState>('idle')
   const [transcript, setTranscript] = useState('')
+  const [interimTranscript, setInterimTranscript] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   // Start as false to match SSR output; set to real value after mount
   const [isSupported, setIsSupported] = useState(false)
@@ -98,21 +100,35 @@ export function useVoiceInput(): UseVoiceInputReturn {
 
     recognition.lang = 'en-US'
     recognition.continuous = false
-    recognition.interimResults = false
+    recognition.interimResults = true
     recognition.maxAlternatives = 1
 
     setState('requesting')
     setErrorMessage(null)
     setTranscript('')
+    setInterimTranscript('')
 
     recognition.onstart = () => {
       setState('listening')
     }
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      setState('processing')
-      const result = event.results[0]?.[0]?.transcript ?? ''
-      setTranscript(result)
+      let interim = ''
+      let final = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const text = event.results[i][0]?.transcript ?? ''
+        if (event.results[i].isFinal) {
+          final += text
+        } else {
+          interim += text
+        }
+      }
+      if (interim) setInterimTranscript(interim)
+      if (final) {
+        setInterimTranscript('')
+        setTranscript(final)
+        setState('processing')
+      }
     }
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -164,14 +180,13 @@ export function useVoiceInput(): UseVoiceInputReturn {
     recognitionRef.current?.abort()
     setState('idle')
     setTranscript('')
+    setInterimTranscript('')
     setErrorMessage(null)
   }, [])
 
   useEffect(() => {
-    return () => {
-      recognitionRef.current?.abort()
-    }
+    return () => { recognitionRef.current?.abort() }
   }, [])
 
-  return { state, transcript, errorMessage, isSupported, start, stop, reset }
+  return { state, transcript, interimTranscript, errorMessage, isSupported, start, stop, reset }
 }
