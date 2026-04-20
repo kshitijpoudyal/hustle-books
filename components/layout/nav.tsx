@@ -115,9 +115,11 @@ function useNavVoice() {
   return voice
 }
 
+type NavVoice = ReturnType<typeof useNavVoice>
+
 /* ── Log FAB — PlusCircle on other pages, Mic on /log ────────────────────── */
-function LogFAB({ isOnLogPage }: { isOnLogPage: boolean }) {
-  const { state, isSupported, start, stop, reset } = useNavVoice()
+function LogFAB({ isOnLogPage, voice }: { isOnLogPage: boolean; voice: NavVoice }) {
+  const { state, isSupported, start, stop, reset } = voice
 
   const isListening = state === 'listening'
   const isLoading = state === 'requesting' || state === 'processing'
@@ -180,8 +182,8 @@ function LogFAB({ isOnLogPage }: { isOnLogPage: boolean }) {
 }
 
 /* ── Desktop sidebar Log CTA — link or mic button ────────────────────────── */
-function DesktopLogCTA({ isOnLogPage }: { isOnLogPage: boolean }) {
-  const { state, isSupported, start, stop, reset } = useNavVoice()
+function DesktopLogCTA({ isOnLogPage, voice }: { isOnLogPage: boolean; voice: NavVoice }) {
+  const { state, isSupported, start, stop, reset } = voice
 
   const isListening = state === 'listening'
   const isLoading = state === 'requesting' || state === 'processing'
@@ -238,7 +240,7 @@ function DesktopLogCTA({ isOnLogPage }: { isOnLogPage: boolean }) {
 }
 
 /* ── Mobile bottom nav ────────────────────────────────────────────────────── */
-function MobileNav({ pathname }: { pathname: string }) {
+function MobileNav({ pathname, voice }: { pathname: string; voice: NavVoice }) {
   const isOnLogPage = pathname === '/log'
   return (
     <nav
@@ -253,7 +255,7 @@ function MobileNav({ pathname }: { pathname: string }) {
       {NAV_ITEMS.map(({ href, label, Icon, primary }) => {
         const active = pathname === href
         if (primary) {
-          return <LogFAB key={href} isOnLogPage={isOnLogPage} />
+          return <LogFAB key={href} isOnLogPage={isOnLogPage} voice={voice} />
         }
         return (
           <Link
@@ -277,7 +279,7 @@ function MobileNav({ pathname }: { pathname: string }) {
 }
 
 /* ── Desktop sidebar ──────────────────────────────────────────────────────── */
-function DesktopSidebar({ pathname }: { pathname: string }) {
+function DesktopSidebar({ pathname, voice }: { pathname: string; voice: NavVoice }) {
   const { profile, email } = useProfile()
 
   const displayName = profile?.full_name ?? email?.split('@')[0] ?? 'You'
@@ -340,7 +342,7 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
 
       {/* CTA + User */}
       <div className="mt-auto pt-8">
-        <DesktopLogCTA isOnLogPage={pathname === '/log'} />
+        <DesktopLogCTA isOnLogPage={pathname === '/log'} voice={voice} />
 
         <p className="mt-4 text-center text-[10px] text-[var(--on-surface-variant)]">
           Powered by{' '}
@@ -369,11 +371,12 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
 
 export default function Nav() {
   const pathname = usePathname()
+  const voice = useNavVoice()
   return (
     <>
       <MobileHeader />
-      <MobileNav pathname={pathname} />
-      <DesktopSidebar pathname={pathname} />
+      <MobileNav pathname={pathname} voice={voice} />
+      <DesktopSidebar pathname={pathname} voice={voice} />
     </>
   )
 }
