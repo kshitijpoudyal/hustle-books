@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { getCached, setCached, invalidateCache } from '@/lib/utils/query-cache'
+import { getProfile, saveProfile } from '@/lib/services/profiles'
 import type { Profile } from '@/lib/types'
 
 const CACHE_KEY = 'profile'
@@ -17,11 +17,13 @@ export function useProfile() {
   const [loading, setLoading] = useState(!seed)
 
   const load = useCallback(async () => {
-    const supabase = createClient()
     try {
+      const { profile: prof, userId } = await getProfile()
+      // email comes from auth — still need supabase auth here for the email
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      const { data: prof } = await supabase.from('profiles').select('*').single()
-      const result: Cached = { profile: prof as Profile | null, email: user?.email ?? null }
+      const result: Cached = { profile: prof, email: user?.email ?? null }
       setCached(CACHE_KEY, result)
       setEmail(result.email)
       setProfile(result.profile)
@@ -37,16 +39,15 @@ export function useProfile() {
   useEffect(() => { load() }, [load])
 
   async function updateProfile(data: Partial<Pick<Profile, 'full_name' | 'settings'>>) {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    const { error } = await supabase.from('profiles').update(data).eq('id', user?.id ?? '')
-    if (error) { toast.error(error.message); return false }
+    const result = await saveProfile(data)
+    if (!result.ok) { toast.error(result.error); return false }
     invalidateCache(CACHE_KEY)
     await load()
     return true
   }
 
   async function signOut() {
+    const { createClient } = await import('@/lib/supabase/client')
     const supabase = createClient()
     invalidateCache(CACHE_KEY)
     await supabase.auth.signOut()
@@ -55,3 +56,4 @@ export function useProfile() {
 
   return { profile, email, loading, updateProfile, signOut, refresh: load }
 }
+

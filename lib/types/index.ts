@@ -1,7 +1,6 @@
 export interface Profile {
   id: string
   full_name: string | null
-  feature_flags: Record<string, boolean>
   settings: {
     mileage_method: 'actual' | 'irs'
     currency: string
@@ -22,6 +21,14 @@ export interface Profile {
   }
   created_at: string
   updated_at: string
+}
+
+/** A feature flag definition row from the `feature_flags` table */
+export interface FeatureFlag {
+  id: string
+  key: string
+  is_public: boolean
+  created_at: string
 }
 
 export interface RateSnapshot {
