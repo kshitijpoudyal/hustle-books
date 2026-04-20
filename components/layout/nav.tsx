@@ -150,6 +150,74 @@ function LogFAB({ isOnLogPage }: { isOnLogPage: boolean }) {
   )
 }
 
+/* ── Desktop sidebar Log CTA — link or mic button ────────────────────────── */
+function DesktopLogCTA({ isOnLogPage }: { isOnLogPage: boolean }) {
+  const { state, transcript, errorMessage, isSupported, start, stop, reset } = useVoiceInput()
+
+  useEffect(() => {
+    if (transcript) {
+      window.dispatchEvent(new CustomEvent('hustle-voice-transcript', { detail: transcript }))
+    }
+  }, [transcript])
+
+  useEffect(() => {
+    if (errorMessage) toast.error(errorMessage)
+  }, [errorMessage])
+
+  const isListening = state === 'listening'
+  const isLoading = state === 'requesting' || state === 'processing'
+
+  function handleMicClick() {
+    if (isListening) { stop(); return }
+    if (state === 'error') { reset(); return }
+    start()
+  }
+
+  if (!isOnLogPage || !isSupported) {
+    return (
+      <Link
+        href="/log"
+        className="w-full py-4 rounded-full flex items-center justify-center gap-x-2 text-white font-semibold shadow-[0_12px_32px_rgba(2,36,72,0.2)] hover:opacity-90 active:scale-95 transition-all"
+        style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
+      >
+        <PlusCircle className="w-4 h-4" strokeWidth={2} />
+        Log
+      </Link>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleMicClick}
+      disabled={isLoading}
+      className="relative w-full py-4 rounded-full flex items-center justify-center gap-x-2 text-white font-semibold shadow-[0_12px_32px_rgba(2,36,72,0.2)] active:scale-95 transition-all duration-200 disabled:opacity-70 overflow-hidden"
+      style={{
+        background: isListening
+          ? 'linear-gradient(135deg, var(--expense) 0%, #c0392b 100%)'
+          : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
+      }}
+    >
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+      ) : state === 'error' ? (
+        <MicOff className="w-4 h-4" strokeWidth={2} />
+      ) : (
+        <Mic className="w-4 h-4" strokeWidth={2} />
+      )}
+      <span>
+        {isListening ? 'Listening…' : state === 'error' ? 'Try Again' : isLoading ? 'Processing…' : 'Voice Log'}
+      </span>
+      {isListening && (
+        <span
+          className="absolute inset-0 animate-ping rounded-full"
+          style={{ backgroundColor: 'rgba(180,60,40,0.25)' }}
+        />
+      )}
+    </button>
+  )
+}
+
 /* ── Mobile bottom nav ────────────────────────────────────────────────────── */
 function MobileNav({ pathname }: { pathname: string }) {
   const isOnLogPage = pathname === '/log'
@@ -253,14 +321,7 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
 
       {/* CTA + User */}
       <div className="mt-auto pt-8">
-        <Link
-          href="/log"
-          className="w-full py-4 rounded-full flex items-center justify-center gap-x-2 text-white font-semibold shadow-[0_12px_32px_rgba(2,36,72,0.2)] hover:opacity-90 active:scale-95 transition-all"
-          style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
-        >
-          <PlusCircle className="w-4 h-4" strokeWidth={2} />
-          Log
-        </Link>
+        <DesktopLogCTA isOnLogPage={pathname === '/log'} />
 
         <p className="mt-4 text-center text-[10px] text-[var(--on-surface-variant)]">
           Powered by{' '}
