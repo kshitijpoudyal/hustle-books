@@ -3,15 +3,20 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { getCached, setCached, invalidateCache } from '@/lib/utils/query-cache'
 import type { RateSnapshot } from '@/lib/types'
+
+const CACHE_KEY = 'rate_snapshots'
 
 export interface RateSnapshotWithCount extends RateSnapshot {
   linked_entry_count: number
 }
 
 export function useRates() {
-  const [snapshots, setSnapshots] = useState<RateSnapshotWithCount[]>([])
-  const [loading, setLoading] = useState(true)
+  const [snapshots, setSnapshots] = useState<RateSnapshotWithCount[]>(
+    () => getCached<RateSnapshotWithCount[]>(CACHE_KEY) ?? []
+  )
+  const [loading, setLoading] = useState(() => !getCached<RateSnapshotWithCount[]>(CACHE_KEY))
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -22,7 +27,6 @@ export function useRates() {
 
     if (!snaps) { setLoading(false); return }
 
-    // Get linked entry counts
     const ids = snaps.map((s: RateSnapshot) => s.id)
     const { data: counts } = await supabase
       .from('income')
@@ -36,7 +40,9 @@ export function useRates() {
       }
     }
 
-    setSnapshots(snaps.map((s: RateSnapshot) => ({ ...s, linked_entry_count: countMap[s.id] ?? 0 })))
+    const result = snaps.map((s: RateSnapshot) => ({ ...s, linked_entry_count: countMap[s.id] ?? 0 }))
+    setCached(CACHE_KEY, result)
+    setSnapshots(result)
     setLoading(false)
   }, [])
 
@@ -49,7 +55,6 @@ export function useRates() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { toast.error('Not authenticated'); return false }
 
-    // Upsert: if snapshot exists for this date, update it (unless locked)
     const existing = snapshots.find(s => s.effective_date === data.effective_date)
     if (existing) {
       if (existing.is_locked) { toast.error('This date has a locked snapshot. Unlock it first.'); return false }
@@ -59,6 +64,7 @@ export function useRates() {
       const { error } = await supabase.from('rate_snapshots').insert({ ...data, user_id: user.id })
       if (error) { toast.error(error.message); return false }
     }
+    invalidateCache(CACHE_KEY)
     await load()
     return true
   }
@@ -72,6 +78,7 @@ export function useRates() {
     const supabase = createClient()
     const { error } = await supabase.from('rate_snapshots').update(data).eq('id', id)
     if (error) { toast.error(error.message); return false }
+    invalidateCache(CACHE_KEY)
     await load()
     return true
   }
@@ -84,6 +91,7 @@ export function useRates() {
     const supabase = createClient()
     const { error } = await supabase.from('rate_snapshots').delete().eq('id', id)
     if (error) { toast.error(error.message); return false }
+    invalidateCache(CACHE_KEY)
     await load()
     return true
   }
@@ -92,6 +100,7 @@ export function useRates() {
     const supabase = createClient()
     const { error } = await supabase.from('rate_snapshots').update({ is_locked: locked }).eq('id', id)
     if (error) { toast.error(error.message); return false }
+    invalidateCache(CACHE_KEY)
     await load()
     return true
   }

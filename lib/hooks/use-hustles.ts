@@ -3,12 +3,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { getCached, setCached, invalidateCache } from '@/lib/utils/query-cache'
 import type { Hustle } from '@/lib/types'
 import type { HustleCategory } from '@/lib/utils/constants'
 
+const CACHE_KEY = 'hustles'
+
 export function useHustles() {
-  const [hustles, setHustles] = useState<Hustle[]>([])
-  const [loading, setLoading] = useState(true)
+  const [hustles, setHustles] = useState<Hustle[]>(() => getCached<Hustle[]>(CACHE_KEY) ?? [])
+  const [loading, setLoading] = useState(() => !getCached<Hustle[]>(CACHE_KEY))
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -16,7 +19,9 @@ export function useHustles() {
       .from('hustles')
       .select('*')
       .order('created_at', { ascending: true })
-    setHustles(data ?? [])
+    const result = data ?? []
+    setCached(CACHE_KEY, result)
+    setHustles(result)
     setLoading(false)
   }, [])
 
@@ -28,6 +33,7 @@ export function useHustles() {
     if (!user) { toast.error('Not authenticated'); return false }
     const { error } = await supabase.from('hustles').insert({ ...data, user_id: user.id })
     if (error) { toast.error(error.message); return false }
+    invalidateCache(CACHE_KEY)
     await load()
     return true
   }
@@ -36,6 +42,7 @@ export function useHustles() {
     const supabase = createClient()
     const { error } = await supabase.from('hustles').update(data).eq('id', id)
     if (error) { toast.error(error.message); return false }
+    invalidateCache(CACHE_KEY)
     await load()
     return true
   }
@@ -44,6 +51,7 @@ export function useHustles() {
     const supabase = createClient()
     const { error } = await supabase.from('hustles').delete().eq('id', id)
     if (error) { toast.error(error.message); return false }
+    invalidateCache(CACHE_KEY)
     await load()
     return true
   }

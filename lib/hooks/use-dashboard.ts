@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { calcNetProfit, calcTaxSetAside } from '@/lib/utils/calculations'
 import { daysSince } from '@/lib/utils/formatters'
+import { getCached, setCached } from '@/lib/utils/query-cache'
 import { useUserSettings } from '@/lib/context/user-settings-context'
 import type { RateSnapshot, Hustle, IncomeEntry, ExpenseEntry, TransactionEntry } from '@/lib/types'
 
@@ -178,7 +179,11 @@ interface RawState {
 
 export function useDashboard(period: Period = 'month', customRange?: { start: string; end: string }): DashboardData {
   const { includeDeprInProfit, includeTaxInProfit } = useUserSettings()
-  const [raw, setRaw] = useState<RawState>({
+
+  const CACHE_KEY = 'dashboard:raw'
+  const seed = getCached<RawState>(CACHE_KEY)
+
+  const [raw, setRaw] = useState<RawState>(seed ?? {
     allIncome: [],
     allExpenses: [],
     hustles: [],
@@ -209,7 +214,7 @@ export function useDashboard(period: Period = 'month', customRange?: { start: st
           .sort((a, b) => b.date !== a.date ? b.date.localeCompare(a.date) : b.created_at.localeCompare(a.created_at))
           .slice(0, 5)
 
-        setRaw({
+        const next: RawState = {
           allIncome: (incomeRes.data ?? []) as RawIncome[],
           allExpenses: (expensesRes.data ?? []) as RawExpense[],
           hustles: hustlesRes.data ?? [],
@@ -217,7 +222,9 @@ export function useDashboard(period: Period = 'month', customRange?: { start: st
           recentActivity,
           loading: false,
           error: null,
-        })
+        }
+        setCached(CACHE_KEY, next)
+        setRaw(next)
       } catch (err) {
         setRaw(prev => ({ ...prev, loading: false, error: err instanceof Error ? err.message : 'Failed to load dashboard' }))
       }
