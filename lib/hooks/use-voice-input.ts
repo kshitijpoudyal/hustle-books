@@ -69,17 +69,16 @@ export function useVoiceInput(): UseVoiceInputReturn {
   const [state, setState] = useState<VoiceState>('idle')
   const [transcript, setTranscript] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  // Start as false to match SSR output; set to real value after mount
+  const [isSupported, setIsSupported] = useState(false)
   const recognitionRef = useRef<WebSpeechRecognition | null>(null)
 
-  const isSupported =
-    typeof window !== 'undefined' &&
-    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
-
   useEffect(() => {
-    if (typeof window !== 'undefined' && !isSupported) {
-      setState('unsupported')
-    }
-  }, [isSupported])
+    const supported =
+      'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
+    setIsSupported(supported)
+    if (!supported) setState('unsupported')
+  }, [])
 
   const stop = useCallback(() => {
     recognitionRef.current?.stop()
@@ -163,10 +162,10 @@ export function useVoiceInput(): UseVoiceInputReturn {
 
   const reset = useCallback(() => {
     recognitionRef.current?.abort()
-    setState(isSupported ? 'idle' : 'unsupported')
+    setState('idle')
     setTranscript('')
     setErrorMessage(null)
-  }, [isSupported])
+  }, [])
 
   useEffect(() => {
     return () => {
