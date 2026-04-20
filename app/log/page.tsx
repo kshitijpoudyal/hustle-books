@@ -19,6 +19,7 @@ import { VoicePreviewModal } from '@/components/log/voice-preview-modal'
 import { parseVoiceTranscript } from '@/lib/utils/voice-parser'
 import type { ParsedVoiceTransaction } from '@/lib/utils/voice-parser'
 import type { ExpenseEntry } from '@/lib/types'
+import { useFeatureFlags } from '@/lib/context/feature-flags-context'
 
 type Tab = 'income' | 'expense'
 
@@ -66,6 +67,9 @@ export default function LogPage() {
   const voice = useVoiceInput()
   const { state: voiceState, transcript, interimTranscript, errorMessage, isSupported, start, stop, reset: resetVoice } = voice
 
+  const { flag } = useFeatureFlags()
+  const voiceEnabled = flag('VOICE_INPUT')
+
   // Voice input state
   const [voiceParsed, setVoiceParsed] = useState<ParsedVoiceTransaction | null>(null)
 
@@ -74,27 +78,28 @@ export default function LogPage() {
   // Live transcript toast
   const VOICE_TOAST = 'voice-log-toast'
   useEffect(() => {
+    if (!voiceEnabled) return
     if (voiceState === 'listening' || voiceState === 'processing') {
       const text = interimTranscript || transcript
       toast.loading(text ? `🎙 "${text}"` : '🎙 Listening… speak now', { id: VOICE_TOAST, duration: Infinity })
     } else {
       toast.dismiss(VOICE_TOAST)
     }
-  }, [voiceState, interimTranscript, transcript])
+  }, [voiceEnabled, voiceState, interimTranscript, transcript])
 
   // Parse final transcript → open preview modal
   useEffect(() => {
-    if (!transcript) return
+    if (!voiceEnabled || !transcript) return
     const parsed = parseVoiceTranscript(transcript, activeHustles.map(h => h.name))
     setVoiceParsed(parsed)
     resetVoice()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transcript])
+  }, [voiceEnabled, transcript])
 
   // Error toast
   useEffect(() => {
-    if (errorMessage) toast.error(errorMessage)
-  }, [errorMessage])
+    if (voiceEnabled && errorMessage) toast.error(errorMessage)
+  }, [voiceEnabled, errorMessage])
 
   // Check if any income entry on the same date already has mileage tracked
   useEffect(() => {
@@ -214,7 +219,7 @@ export default function LogPage() {
     <div className="min-h-screen bg-[var(--surface)]">
 
       {/* Voice Preview Modal */}
-      {voiceParsed && (
+      {voiceEnabled && voiceParsed && (
         <VoicePreviewModal
           parsed={voiceParsed}
           hustles={hustles}
@@ -245,7 +250,7 @@ export default function LogPage() {
                 </button>
               ))}
             </div>
-            {isSupported && (
+            {voiceEnabled && isSupported && (
               <button
                 type="button"
                 onClick={() => {
@@ -633,7 +638,7 @@ export default function LogPage() {
                   </button>
                 ))}
               </div>
-              {isSupported && (
+              {voiceEnabled && isSupported && (
                 <button
                   type="button"
                   onClick={() => {

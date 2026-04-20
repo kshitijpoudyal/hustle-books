@@ -15,6 +15,7 @@ import { useUserSettings } from '@/lib/context/user-settings-context'
 import type { HustleCategory } from '@/lib/utils/constants'
 import { toast } from 'sonner'
 import type { Hustle, IncomeEntry, ExpenseEntry } from '@/lib/types'
+import GoalsList from '@/components/goals/goals-list'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -408,6 +409,10 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
           </section>
 
           <div className="grid grid-cols-1 gap-12">
+
+            {/* Hustle Goals */}
+            <GoalsList hustleId={id} hustleColor={hustle.color} title="Hustle Goals" />
+
             {/* Recent Activity */}
             <section>
               <div className="flex justify-between items-center mb-8">
@@ -632,6 +637,8 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
             {/* Sidebar — 4-col */}
             <aside className="col-span-4 space-y-8">
 
+              {/* Hustle Goals */}
+              <GoalsList hustleId={id} hustleColor={hustle.color} title="Hustle Goals" />
 
               {/* Growth Pulse */}
               <div

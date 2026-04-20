@@ -8,6 +8,8 @@ export interface Profile {
     include_depreciation_in_profit: boolean
     include_tax_in_profit: boolean
     show_calculator_fab: boolean
+    /** Whether to show milestone animations (confetti, toasts, glow) on goal progress */
+    goal_animations: boolean
     vehicle: {
       year: number | null
       make_model: string | null
@@ -87,3 +89,19 @@ export interface ExpenseEntry {
 export type TransactionEntry =
   | (IncomeEntry & { entry_type: 'income' })
   | (ExpenseEntry & { entry_type: 'expense' })
+
+export interface Goal {
+  id: string
+  user_id: string
+  /** null = global goal spanning all hustles */
+  hustle_id: string | null
+  title: string
+  target_amount: number
+  type: 'hustle' | 'global'
+  timeframe_start: string | null  // ISO date YYYY-MM-DD
+  timeframe_end: string | null    // ISO date YYYY-MM-DD
+  created_at: string
+  updated_at: string
+  /** Virtual: populated by hook from income aggregation */
+  current_amount?: number
+}

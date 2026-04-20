@@ -8,6 +8,7 @@ import RecentActivity from '@/components/dashboard/recent-activity'
 import RevenueTrendCard from '@/components/dashboard/revenue-trend-card'
 import Link from 'next/link'
 import { TrendingUp, Receipt } from 'lucide-react'
+import GoalsList from '@/components/goals/goals-list'
 
 const PERIOD_SHORT: Record<Period, string> = { today: 'Today', week: 'Week', month: 'Month', year: 'Year', all: 'All Time' }
 
@@ -93,6 +94,9 @@ export default function DashboardPage() {
             </div>
             <RecentActivity entries={recentActivity} loading={loading} />
           </section>
+
+          {/* Global Goals */}
+          <GoalsList globalOnly title="Income Goals" />
         </div>
       </div>
 
@@ -234,6 +238,11 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+        </section>
+
+        {/* Global Goals */}
+        <section className="mt-8">
+          <GoalsList globalOnly title="Income Goals" />
         </section>
       </div>
     </div>

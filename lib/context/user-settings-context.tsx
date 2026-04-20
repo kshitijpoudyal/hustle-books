@@ -15,6 +15,7 @@ interface UserSettingsContextValue {
   includeDeprInProfit: boolean
   includeTaxInProfit: boolean
   showCalculatorFab: boolean
+  goalAnimations: boolean
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -24,6 +25,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   include_depreciation_in_profit: true,
   include_tax_in_profit: true,
   show_calculator_fab: true,
+  goal_animations: true,
   vehicle: {
     year: null,
     make_model: null,
@@ -41,6 +43,7 @@ const UserSettingsContext = createContext<UserSettingsContextValue>({
   includeDeprInProfit: true,
   includeTaxInProfit: true,
   showCalculatorFab: true,
+  goalAnimations: true,
 })
 
 export function UserSettingsProvider({ children }: { children: React.ReactNode }) {
@@ -73,6 +76,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
       includeDeprInProfit: settings?.include_depreciation_in_profit ?? true,
       includeTaxInProfit: settings?.include_tax_in_profit ?? true,
       showCalculatorFab: settings?.show_calculator_fab ?? true,
+      goalAnimations: settings?.goal_animations ?? true,
     }}>
       {children}
     </UserSettingsContext.Provider>
