@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
+import { toast } from 'sonner'
 import {
   LayoutDashboard,
   Clock,
@@ -9,8 +11,12 @@ import {
   Settings,
   PlusCircle,
   BookOpen,
+  Mic,
+  MicOff,
+  Loader2,
 } from 'lucide-react'
 import { useProfile } from '@/lib/hooks/use-profile'
+import { useVoiceInput } from '@/lib/hooks/use-voice-input'
 
 const NAV_ITEMS = [
   { href: '/',          label: 'Dashboard', Icon: LayoutDashboard },
@@ -68,8 +74,85 @@ export function MobileHeader() {
   )
 }
 
+/* ── Log FAB — PlusCircle on other pages, Mic on /log ────────────────────── */
+function LogFAB({ isOnLogPage }: { isOnLogPage: boolean }) {
+  const { state, transcript, errorMessage, isSupported, start, stop, reset } = useVoiceInput()
+
+  // Forward raw transcript to the log page via a custom event
+  useEffect(() => {
+    if (transcript) {
+      window.dispatchEvent(new CustomEvent('hustle-voice-transcript', { detail: transcript }))
+    }
+  }, [transcript])
+
+  // Errors → toast (no inline UI clutter)
+  useEffect(() => {
+    if (errorMessage) toast.error(errorMessage)
+  }, [errorMessage])
+
+  const isListening = state === 'listening'
+  const isLoading = state === 'requesting' || state === 'processing'
+
+  function handleMicClick() {
+    if (isListening) { stop(); return }
+    if (state === 'error') { reset(); return }
+    start()
+  }
+
+  if (!isOnLogPage || !isSupported) {
+    return (
+      <Link href="/log" className="flex flex-col items-center">
+        <div
+          className="-mt-8 w-12 h-12 rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(2,36,72,0.25)] active:scale-95 transition-transform"
+          style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
+        >
+          <PlusCircle className="w-5 h-5 text-white" strokeWidth={1.5} />
+        </div>
+        <span className="font-label uppercase tracking-[0.1rem] text-[9px] mt-1 text-[var(--on-surface-variant)]">
+          Log
+        </span>
+      </Link>
+    )
+  }
+
+  return (
+    <div className="flex flex-col items-center">
+      <button
+        type="button"
+        onClick={handleMicClick}
+        disabled={isLoading}
+        aria-label={isListening ? 'Stop recording' : 'Log by voice'}
+        className="relative -mt-8 w-12 h-12 rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(2,36,72,0.25)] active:scale-95 transition-all duration-200 disabled:opacity-70"
+        style={{
+          background: isListening
+            ? 'linear-gradient(135deg, var(--expense) 0%, #c0392b 100%)'
+            : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
+        }}
+      >
+        {isLoading ? (
+          <Loader2 className="w-5 h-5 text-white animate-spin" strokeWidth={1.5} />
+        ) : state === 'error' ? (
+          <MicOff className="w-5 h-5 text-white" strokeWidth={1.5} />
+        ) : (
+          <Mic className="w-5 h-5 text-white" strokeWidth={1.5} />
+        )}
+        {isListening && (
+          <span
+            className="absolute inset-0 rounded-full animate-ping"
+            style={{ backgroundColor: 'rgba(180,60,40,0.35)' }}
+          />
+        )}
+      </button>
+      <span className="font-label uppercase tracking-[0.1rem] text-[9px] mt-1 text-[var(--on-surface-variant)]">
+        {isListening ? 'Listening' : state === 'error' ? 'Retry' : isLoading ? '…' : 'Voice'}
+      </span>
+    </div>
+  )
+}
+
 /* ── Mobile bottom nav ────────────────────────────────────────────────────── */
 function MobileNav({ pathname }: { pathname: string }) {
+  const isOnLogPage = pathname === '/log'
   return (
     <nav
       className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pt-3 pb-8 rounded-t-[24px]"
@@ -83,19 +166,7 @@ function MobileNav({ pathname }: { pathname: string }) {
       {NAV_ITEMS.map(({ href, label, Icon, primary }) => {
         const active = pathname === href
         if (primary) {
-          return (
-            <Link key={href} href={href} className="flex flex-col items-center">
-              <div
-                className="-mt-8 w-12 h-12 rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(2,36,72,0.25)] active:scale-95 transition-transform"
-                style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
-              >
-                <Icon className="w-5 h-5 text-white" strokeWidth={1.5} />
-              </div>
-              <span className="font-label uppercase tracking-[0.1rem] text-[9px] mt-1 text-[var(--on-surface-variant)]">
-                {label}
-              </span>
-            </Link>
-          )
+          return <LogFAB key={href} isOnLogPage={isOnLogPage} />
         }
         return (
           <Link
