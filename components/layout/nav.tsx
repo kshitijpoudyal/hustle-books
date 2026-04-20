@@ -2,8 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect } from 'react'
-import { toast } from 'sonner'
 import {
   LayoutDashboard,
   Clock,
@@ -11,12 +9,8 @@ import {
   Settings,
   PlusCircle,
   BookOpen,
-  Mic,
-  MicOff,
-  Loader2,
 } from 'lucide-react'
 import { useProfile } from '@/lib/hooks/use-profile'
-import { useVoiceInput } from '@/lib/hooks/use-voice-input'
 
 const NAV_ITEMS = [
   { href: '/',          label: 'Dashboard', Icon: LayoutDashboard },
@@ -74,173 +68,8 @@ export function MobileHeader() {
   )
 }
 
-/* ── Shared voice logic hook used by both nav mic buttons ─────────────────── */
-const VOICE_TOAST_ID = 'voice-live-transcript'
-
-function useNavVoice() {
-  const voice = useVoiceInput()
-  const { state, transcript, interimTranscript, errorMessage } = voice
-
-  // Show / update a persistent toast while listening or processing
-  useEffect(() => {
-    if (state === 'listening' || state === 'processing') {
-      const displayText = interimTranscript || transcript
-      toast.loading(
-        displayText ? `🎙 "${displayText}"` : '🎙 Listening… speak now',
-        { id: VOICE_TOAST_ID, duration: Infinity }
-      )
-    }
-  }, [state, interimTranscript, transcript])
-
-  // Dismiss live toast only when fully done (idle/error/unsupported)
-  useEffect(() => {
-    if (state === 'idle' || state === 'error' || state === 'unsupported') {
-      toast.dismiss(VOICE_TOAST_ID)
-    }
-  }, [state])
-
-  // Forward final transcript to log page
-  useEffect(() => {
-    if (transcript) {
-      window.dispatchEvent(new CustomEvent('hustle-voice-transcript', { detail: transcript }))
-    }
-  }, [transcript])
-
-  // Errors → toast
-  useEffect(() => {
-    if (errorMessage) toast.error(errorMessage)
-  }, [errorMessage])
-
-  return voice
-}
-
-type NavVoice = ReturnType<typeof useNavVoice>
-
-/* ── Log FAB — PlusCircle on other pages, Mic on /log ────────────────────── */
-function LogFAB({ isOnLogPage, voice }: { isOnLogPage: boolean; voice: NavVoice }) {
-  const { state, isSupported, start, stop, reset } = voice
-
-  const isListening = state === 'listening'
-  const isLoading = state === 'requesting' || state === 'processing'
-
-  function handleMicClick() {
-    if (isListening) { stop(); return }
-    if (state === 'error') { reset(); return }
-    start()
-  }
-
-  if (!isOnLogPage || !isSupported) {
-    return (
-      <Link href="/log" className="flex flex-col items-center">
-        <div
-          className="-mt-8 w-12 h-12 rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(2,36,72,0.25)] active:scale-95 transition-transform"
-          style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
-        >
-          <PlusCircle className="w-5 h-5 text-white" strokeWidth={1.5} />
-        </div>
-        <span className="font-label uppercase tracking-[0.1rem] text-[9px] mt-1 text-[var(--on-surface-variant)]">
-          Log
-        </span>
-      </Link>
-    )
-  }
-
-  return (
-    <div className="flex flex-col items-center">
-      <button
-        type="button"
-        onClick={handleMicClick}
-        disabled={isLoading}
-        aria-label={isListening ? 'Stop recording' : 'Log by voice'}
-        className="relative -mt-8 w-12 h-12 rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(2,36,72,0.25)] active:scale-95 transition-all duration-200 disabled:opacity-70"
-        style={{
-          background: isListening
-            ? 'linear-gradient(135deg, var(--expense) 0%, #c0392b 100%)'
-            : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
-        }}
-      >
-        {isLoading ? (
-          <Loader2 className="w-5 h-5 text-white animate-spin" strokeWidth={1.5} />
-        ) : state === 'error' ? (
-          <MicOff className="w-5 h-5 text-white" strokeWidth={1.5} />
-        ) : (
-          <Mic className="w-5 h-5 text-white" strokeWidth={1.5} />
-        )}
-        {isListening && (
-          <span
-            className="absolute inset-0 rounded-full animate-ping"
-            style={{ backgroundColor: 'rgba(180,60,40,0.35)' }}
-          />
-        )}
-      </button>
-      <span className="font-label uppercase tracking-[0.1rem] text-[9px] mt-1 text-[var(--on-surface-variant)]">
-        {isListening ? 'Listening' : state === 'error' ? 'Retry' : isLoading ? '…' : 'Voice'}
-      </span>
-    </div>
-  )
-}
-
-/* ── Desktop sidebar Log CTA — link or mic button ────────────────────────── */
-function DesktopLogCTA({ isOnLogPage, voice }: { isOnLogPage: boolean; voice: NavVoice }) {
-  const { state, isSupported, start, stop, reset } = voice
-
-  const isListening = state === 'listening'
-  const isLoading = state === 'requesting' || state === 'processing'
-
-  function handleMicClick() {
-    if (isListening) { stop(); return }
-    if (state === 'error') { reset(); return }
-    start()
-  }
-
-  if (!isOnLogPage || !isSupported) {
-    return (
-      <Link
-        href="/log"
-        className="w-full py-4 rounded-full flex items-center justify-center gap-x-2 text-white font-semibold shadow-[0_12px_32px_rgba(2,36,72,0.2)] hover:opacity-90 active:scale-95 transition-all"
-        style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
-      >
-        <PlusCircle className="w-4 h-4" strokeWidth={2} />
-        Log
-      </Link>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleMicClick}
-      disabled={isLoading}
-      className="relative w-full py-4 rounded-full flex items-center justify-center gap-x-2 text-white font-semibold shadow-[0_12px_32px_rgba(2,36,72,0.2)] active:scale-95 transition-all duration-200 disabled:opacity-70 overflow-hidden"
-      style={{
-        background: isListening
-          ? 'linear-gradient(135deg, var(--expense) 0%, #c0392b 100%)'
-          : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
-      }}
-    >
-      {isLoading ? (
-        <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-      ) : state === 'error' ? (
-        <MicOff className="w-4 h-4" strokeWidth={2} />
-      ) : (
-        <Mic className="w-4 h-4" strokeWidth={2} />
-      )}
-      <span>
-        {isListening ? 'Listening…' : state === 'error' ? 'Try Again' : isLoading ? 'Processing…' : 'Voice Log'}
-      </span>
-      {isListening && (
-        <span
-          className="absolute inset-0 animate-ping rounded-full"
-          style={{ backgroundColor: 'rgba(180,60,40,0.25)' }}
-        />
-      )}
-    </button>
-  )
-}
-
-/* ── Mobile bottom nav ────────────────────────────────────────────────────── */
-function MobileNav({ pathname, voice }: { pathname: string; voice: NavVoice }) {
-  const isOnLogPage = pathname === '/log'
+/* ── Mobile bottom nav ─────────────────────────────────────────────────────── */
+function MobileNav({ pathname }: { pathname: string }) {
   return (
     <nav
       className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pt-3 pb-8 rounded-t-[24px]"
@@ -254,7 +83,19 @@ function MobileNav({ pathname, voice }: { pathname: string; voice: NavVoice }) {
       {NAV_ITEMS.map(({ href, label, Icon, primary }) => {
         const active = pathname === href
         if (primary) {
-          return <LogFAB key={href} isOnLogPage={isOnLogPage} voice={voice} />
+          return (
+            <Link key={href} href="/log" className="flex flex-col items-center">
+              <div
+                className="-mt-8 w-12 h-12 rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(2,36,72,0.25)] active:scale-95 transition-transform"
+                style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
+              >
+                <PlusCircle className="w-5 h-5 text-white" strokeWidth={1.5} />
+              </div>
+              <span className="font-label uppercase tracking-[0.1rem] text-[9px] mt-1 text-[var(--on-surface-variant)]">
+                Log
+              </span>
+            </Link>
+          )
         }
         return (
           <Link
@@ -277,8 +118,8 @@ function MobileNav({ pathname, voice }: { pathname: string; voice: NavVoice }) {
   )
 }
 
-/* ── Desktop sidebar ──────────────────────────────────────────────────────── */
-function DesktopSidebar({ pathname, voice }: { pathname: string; voice: NavVoice }) {
+/* ── Desktop sidebar ────────────────────────────────────────────────────────── */
+function DesktopSidebar({ pathname }: { pathname: string }) {
   const { profile, email } = useProfile()
 
   const displayName = profile?.full_name ?? email?.split('@')[0] ?? 'You'
@@ -341,7 +182,14 @@ function DesktopSidebar({ pathname, voice }: { pathname: string; voice: NavVoice
 
       {/* CTA + User */}
       <div className="mt-auto pt-8">
-        <DesktopLogCTA isOnLogPage={pathname === '/log'} voice={voice} />
+        <Link
+          href="/log"
+          className="w-full py-4 rounded-full flex items-center justify-center gap-x-2 text-white font-semibold shadow-[0_12px_32px_rgba(2,36,72,0.2)] hover:opacity-90 active:scale-95 transition-all"
+          style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)' }}
+        >
+          <PlusCircle className="w-4 h-4" strokeWidth={2} />
+          Log
+        </Link>
 
         <p className="mt-4 text-center text-[10px] text-[var(--on-surface-variant)]">
           Powered by{' '}
@@ -370,12 +218,11 @@ function DesktopSidebar({ pathname, voice }: { pathname: string; voice: NavVoice
 
 export default function Nav() {
   const pathname = usePathname()
-  const voice = useNavVoice()
   return (
     <>
       <MobileHeader />
-      <MobileNav pathname={pathname} voice={voice} />
-      <DesktopSidebar pathname={pathname} voice={voice} />
+      <MobileNav pathname={pathname} />
+      <DesktopSidebar pathname={pathname} />
     </>
   )
 }
