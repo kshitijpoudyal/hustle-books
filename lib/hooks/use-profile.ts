@@ -12,20 +12,35 @@ export function useProfile() {
 
   const load = useCallback(async () => {
     const supabase = createClient()
-    const [{ data: user }, { data: prof }] = await Promise.all([
-      supabase.auth.getUser(),
-      supabase.from('profiles').select('*').single(),
-    ])
-    setEmail(user.user?.email ?? null)
-    setProfile(prof as Profile | null)
-    setLoading(false)
-  }, [])
+    try {
+      // Sequential — avoids two concurrent auth lock acquisitions that race
+      // and throw "lock was released because another request stole it"
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: prof } = await supabase.from('profiles').select('*').single()
+      setEmail(user?.email ?? null)
+      setProfile(prof as Profile | null)
+    } catch (err: unknown) {
+      // Lock-stolen warnings from Supabase are not fatal — silently retry once
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('lock') || msg.includes('stole')) {
+        setTimeout(load, 500)
+        return
+      }
+      console.error('[useProfile] load error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load() }, [load])
 
   async function updateProfile(data: Partial<Pick<Profile, 'full_name' | 'settings'>>) {
     const supabase = createClient()
-    const { error } = await supabase.from('profiles').update(data).eq('id', (await supabase.auth.getUser()).data.user?.id ?? '')
+    const { data: { user } } = await supabase.auth.getUser()
+    const { error } = await supabase
+      .from('profiles')
+      .update(data)
+      .eq('id', user?.id ?? '')
     if (error) { toast.error(error.message); return false }
     await load()
     return true
