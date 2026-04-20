@@ -115,7 +115,8 @@ export function useVoiceInput(): UseVoiceInputReturn {
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interim = ''
       let final = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      // Scan all results, not just from resultIndex, so accumulated speech isn't lost
+      for (let i = 0; i < event.results.length; i++) {
         const text = event.results[i][0]?.transcript ?? ''
         if (event.results[i].isFinal) {
           final += text
@@ -123,7 +124,8 @@ export function useVoiceInput(): UseVoiceInputReturn {
           interim += text
         }
       }
-      if (interim) setInterimTranscript(interim)
+      // Always update interim so toast stays current
+      setInterimTranscript(interim)
       if (final) {
         setInterimTranscript('')
         setTranscript(final)

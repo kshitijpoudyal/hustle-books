@@ -81,21 +81,20 @@ function useNavVoice() {
   const voice = useVoiceInput()
   const { state, transcript, interimTranscript, errorMessage } = voice
 
-  // Show / update a persistent toast while listening
+  // Show / update a persistent toast while listening or processing
   useEffect(() => {
-    if (state === 'listening') {
+    if (state === 'listening' || state === 'processing') {
+      const displayText = interimTranscript || transcript
       toast.loading(
-        interimTranscript
-          ? `🎙 "${interimTranscript}"`
-          : '🎙 Listening… speak now',
+        displayText ? `🎙 "${displayText}"` : '🎙 Listening… speak now',
         { id: VOICE_TOAST_ID, duration: Infinity }
       )
     }
-  }, [state, interimTranscript])
+  }, [state, interimTranscript, transcript])
 
-  // Dismiss live toast when done
+  // Dismiss live toast only when fully done (idle/error/unsupported)
   useEffect(() => {
-    if (state !== 'listening' && state !== 'requesting') {
+    if (state === 'idle' || state === 'error' || state === 'unsupported') {
       toast.dismiss(VOICE_TOAST_ID)
     }
   }, [state])
