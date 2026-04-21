@@ -9,8 +9,7 @@ import {
   useState,
 } from 'react'
 import {
-  loadFlags,
-  saveFlags,
+  UserGroup,
   type FlagKey,
 } from '@/lib/feature-flags'
 import {
@@ -25,19 +24,29 @@ interface FeatureFlagsContextValue {
   flag: (key: FlagKey) => boolean
   setFlag: (key: FlagKey, value: boolean) => void
   stored: Record<string, boolean>
-  publicFlagKeys: Set<string>
+  /** Keys of non-disabled flags visible to this user */
+  visibleFlagKeys: Set<string>
+  /** Map of flag key → release_stage from DB */
+  keyToStage: Record<string, string>
+  userGroup: UserGroup
+  isInternal: boolean
 }
 
 const FeatureFlagsContext = createContext<FeatureFlagsContextValue>({
-  flag: (key) => resolveFlag({}, key),
+  flag: () => false,
   setFlag: () => {},
   stored: {},
-  publicFlagKeys: new Set(),
+  visibleFlagKeys: new Set(),
+  keyToStage: {},
+  userGroup: UserGroup.PUBLIC,
+  isInternal: false,
 })
 
 export function FeatureFlagsProvider({ children }: { children: React.ReactNode }) {
-  const [stored, setStored] = useState<Record<string, boolean>>(() => loadFlags())
-  const [publicFlagKeys, setPublicFlagKeys] = useState<Set<string>>(new Set())
+  const [stored, setStored] = useState<Record<string, boolean>>({})
+  const [visibleFlagKeys, setVisibleFlagKeys] = useState<Set<string>>(new Set())
+  const [keyToStage, setKeyToStage] = useState<Record<string, string>>({})
+  const [userGroup, setUserGroup] = useState<UserGroup>(UserGroup.PUBLIC)
 
   const keyToIdRef = useRef<Record<string, string>>({})
   const userIdRef = useRef<string | null>(null)
@@ -49,19 +58,21 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
       if (!user) return
       userIdRef.current = user.id
 
-      const resolved = await loadUserFlags(user.id)
-      keyToIdRef.current = resolved.keyToId
-      setPublicFlagKeys(resolved.publicFlagKeys)
+      const { data: profile } = await supabase
+        .from('users')
+        .select('user_group')
+        .eq('id', user.id)
+        .single()
 
-      // DB enrollment only records 'true' (enrolled). Merge in any explicit
-      // false overrides the user has set locally so they survive a page reload.
-      const localStored = loadFlags()
-      const merged: Record<string, boolean> = { ...resolved.stored }
-      for (const [k, v] of Object.entries(localStored)) {
-        if (v === false) merged[k] = false
-      }
-      setStored(merged)
-      saveFlags(merged)
+      const group: UserGroup =
+        (profile?.user_group as UserGroup | null) ?? UserGroup.PUBLIC
+      setUserGroup(group)
+
+      const resolved = await loadUserFlags(user.id, group)
+      keyToIdRef.current = resolved.keyToId
+      setVisibleFlagKeys(resolved.visibleFlagKeys)
+      setKeyToStage(resolved.keyToStage)
+      setStored(resolved.stored)
     }
     load()
   }, [])
@@ -72,9 +83,12 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
   )
 
   const setFlag = useCallback((key: FlagKey, value: boolean) => {
+    if (userGroup === UserGroup.PUBLIC) {
+      console.warn('[FeatureFlags] Public users cannot toggle feature flags')
+      return
+    }
     setStored(prev => {
       const next = { ...prev, [key]: value }
-      saveFlags(next)
 
       const userId = userIdRef.current
       if (userId) {
@@ -89,10 +103,12 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
 
       return next
     })
-  }, [])
+  }, [userGroup])
+
+  const isInternal = userGroup === UserGroup.INTERNAL
 
   return (
-    <FeatureFlagsContext.Provider value={{ flag, setFlag, stored, publicFlagKeys }}>
+    <FeatureFlagsContext.Provider value={{ flag, setFlag, stored, visibleFlagKeys, keyToStage, userGroup, isInternal }}>
       {children}
     </FeatureFlagsContext.Provider>
   )

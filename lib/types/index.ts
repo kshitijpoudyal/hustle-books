@@ -1,6 +1,9 @@
+import { FeatureReleaseStage } from '@/lib/feature-flags'
+
 export interface Profile {
   id: string
   full_name: string | null
+  user_group: 'internal' | 'public'
   settings: {
     mileage_method: 'actual' | 'irs'
     currency: string
@@ -27,7 +30,7 @@ export interface Profile {
 export interface FeatureFlag {
   id: string
   key: string
-  is_public: boolean
+  release_stage: 'beta' | 'production' | 'disabled'
   created_at: string
 }
 

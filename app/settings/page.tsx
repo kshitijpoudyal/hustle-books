@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, LogOut, TrendingDown, ChevronRight, Download, CheckCircle, Smartphone } from 'lucide-react'
 import { toast } from 'sonner'
 import { useProfile } from '@/lib/hooks/use-profile'
 import { useRates } from '@/lib/hooks/use-rates'
 import { useUserSettings } from '@/lib/context/user-settings-context'
+import { useFeatureFlags } from '@/lib/context/feature-flags-context'
 import { usePWAInstall } from '@/lib/hooks/use-pwa-install'
 import { calcDepreciationPerMile } from '@/lib/utils/calculations'
 import {
@@ -44,6 +46,7 @@ export default function SettingsPage() {
   const { profile, email, loading: profileLoading, updateProfile, signOut } = useProfile()
   const { activeSnapshot, loading: ratesLoading } = useRates()
   const { includeDeprInProfit, includeTaxInProfit, showCalculatorFab, updateSettings } = useUserSettings()
+  const { isInternal } = useFeatureFlags()
   const { canInstall, installState, isInstalled, promptInstall } = usePWAInstall()
 
   const [fullName, setFullName] = useState('')
@@ -416,7 +419,8 @@ export default function SettingsPage() {
                 </div>
               </button>
               <div className="border-t border-[var(--outline-variant)] opacity-20 my-2" />
-              <a
+              {isInternal && (
+              <Link
                 href="/devpower"
                 className="w-full flex items-center justify-between gap-4 py-2"
               >
@@ -427,7 +431,8 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <span className="font-label text-xs uppercase tracking-widest text-[var(--on-surface-variant)] flex-shrink-0">Open →</span>
-              </a>
+              </Link>
+              )}
             </div>
           </section>
 
@@ -742,7 +747,8 @@ export default function SettingsPage() {
                 />
               </button>
             </div>
-            <a
+            {isInternal && (
+            <Link
               href="/devpower"
               className="bg-[var(--surface-container-low)] squircle p-8 flex items-center justify-between gap-8 mt-4 hover:bg-[var(--surface-container)] transition-colors"
             >
@@ -753,7 +759,8 @@ export default function SettingsPage() {
                 </p>
               </div>
               <span className="font-label text-xs uppercase tracking-widest text-[var(--on-surface-variant)] flex-shrink-0">Open →</span>
-            </a>
+            </Link>
+            )}
           </section>
 
 

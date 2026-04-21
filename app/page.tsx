@@ -9,6 +9,7 @@ import RevenueTrendCard from '@/components/dashboard/revenue-trend-card'
 import Link from 'next/link'
 import { TrendingUp, Receipt } from 'lucide-react'
 import GoalsList from '@/components/goals/goals-list'
+import { useFeatureFlags } from '@/lib/context/feature-flags-context'
 
 const PERIOD_SHORT: Record<Period, string> = { today: 'Today', week: 'Week', month: 'Month', year: 'Year', all: 'All Time' }
 
@@ -28,6 +29,9 @@ export default function DashboardPage() {
     recentActivity,
     loading,
   } = useDashboard(period)
+
+  const { flag } = useFeatureFlags()
+  const goalsEnabled = flag('GOAL_MILESTONES')
 
   const topHustle = hustleStats.length > 0
     ? hustleStats.reduce((best, h) => h.income > best.income ? h : best)
@@ -96,7 +100,7 @@ export default function DashboardPage() {
           </section>
 
           {/* Global Goals */}
-          <GoalsList globalOnly title="Income Goals" />
+          {goalsEnabled && <GoalsList globalOnly title="Income Goals" />}
         </div>
       </div>
 
@@ -241,9 +245,11 @@ export default function DashboardPage() {
         </section>
 
         {/* Global Goals */}
-        <section className="mt-8">
-          <GoalsList globalOnly title="Income Goals" />
-        </section>
+        {goalsEnabled && (
+          <section className="mt-8">
+            <GoalsList globalOnly title="Income Goals" />
+          </section>
+        )}
       </div>
     </div>
   )

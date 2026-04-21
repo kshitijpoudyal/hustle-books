@@ -52,7 +52,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.from('profiles').select('settings').single().then(
+    supabase.from('users').select('settings').single().then(
       (res: { data: { settings: unknown } | null }) => {
         setSettings((res.data?.settings as UserSettings) ?? DEFAULT_SETTINGS)
         setLoading(false)
@@ -65,7 +65,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
     setSettings(next)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) await supabase.from('profiles').update({ settings: next }).eq('id', user.id)
+    if (user) await supabase.from('users').update({ settings: next }).eq('id', user.id)
   }, [settings])
 
   return (
