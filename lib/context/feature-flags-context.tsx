@@ -18,6 +18,7 @@ import {
   disableFlag,
   resolveFlag,
 } from '@/lib/services/feature-flags'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
 interface FeatureFlagsContextValue {
@@ -52,29 +53,42 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
   const userIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    async function load() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      userIdRef.current = user.id
+    const supabase = createClient()
+
+    async function load(userId: string) {
+      userIdRef.current = userId
 
       const { data: profile } = await supabase
         .from('users')
         .select('user_group')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single()
 
       const group: UserGroup =
         (profile?.user_group as UserGroup | null) ?? UserGroup.PUBLIC
       setUserGroup(group)
 
-      const resolved = await loadUserFlags(user.id, group)
+      const resolved = await loadUserFlags(userId, group)
       keyToIdRef.current = resolved.keyToId
       setVisibleFlagKeys(resolved.visibleFlagKeys)
       setKeyToStage(resolved.keyToStage)
       setStored(resolved.stored)
     }
-    load()
+
+    // Initial load — may return null on mobile before auth is ready
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: { id: string } | null } }) => {
+      if (user) load(user.id)
+    })
+
+    // Re-run when the session becomes available (handles mobile race condition
+    // where auth initializes after the effect first runs)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      if (session?.user && session.user.id !== userIdRef.current) {
+        load(session.user.id)
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const flag = useCallback(
