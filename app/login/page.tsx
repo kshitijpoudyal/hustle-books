@@ -15,13 +15,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function fillDemo() {
-    setMode('login')
-    setEmail('demo@hustlebooks.app')
-    setPassword('HustleDemo2024')
-    setError(null)
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -82,25 +75,6 @@ export default function LoginPage() {
           <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">
             {mode === 'login' ? 'Sign in' : 'Create account'}
           </h2>
-
-          {/* Demo credentials banner */}
-          {mode === 'login' && (
-            <div className="mb-5 rounded-xl p-4" style={{ backgroundColor: 'rgba(44,166,164,0.08)', border: '1px solid rgba(44,166,164,0.2)' }}>
-              <p className="font-label text-[10px] uppercase tracking-widest mb-2" style={{ color: 'var(--secondary)' }}>Try the demo</p>
-              <div className="space-y-0.5 mb-3">
-                <p className="text-sm text-[var(--on-surface)]"><span className="text-[var(--on-surface-variant)] text-xs">Email</span> · demo@hustlebooks.app</p>
-                <p className="text-sm text-[var(--on-surface)]"><span className="text-[var(--on-surface-variant)] text-xs">Password</span> · HustleDemo2024</p>
-              </div>
-              <button
-                type="button"
-                onClick={fillDemo}
-                className="w-full py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
-                style={{ backgroundColor: 'rgba(44,166,164,0.15)', color: 'var(--secondary)' }}
-              >
-                Fill demo credentials →
-              </button>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
