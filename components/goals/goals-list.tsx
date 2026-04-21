@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { Plus, Target } from 'lucide-react'
 import { toast } from 'sonner'
 import { useGoals } from '@/lib/hooks/use-goals'
 import { useHustles } from '@/lib/hooks/use-hustles'
 import { useGoalMilestones } from '@/lib/hooks/use-goal-milestones'
-import { useFeatureFlags } from '@/lib/context/feature-flags-context'
 import GoalCard from './goal-card'
 import GoalForm from './goal-form'
 import type { GoalWithProgress } from '@/lib/hooks/use-goals'
@@ -60,20 +59,13 @@ export default function GoalsList({ hustleId, hustleColor, globalOnly, title }: 
 
   const { goals, loading, createGoal, updateGoal, deleteGoal } = useGoals(filters)
   const { hustles } = useHustles()
-  const { flag } = useFeatureFlags()
-  const milestonesEnabled = flag('GOAL_MILESTONES')
 
   const [showForm, setShowForm] = useState(false)
   const [editGoal, setEditGoal] = useState<GoalWithProgress | null>(null)
   // Map of goalId → milestone being flashed on the card
   const [flashMap, setFlashMap] = useState<Record<string, MilestonePct>>({})
-  // Keep a ref to avoid stale closures in the confetti loader
-  const milestonesEnabledRef = useRef(milestonesEnabled)
-  milestonesEnabledRef.current = milestonesEnabled
 
   const handleMilestone = useCallback(async ({ goal, milestone }: MilestoneEvent) => {
-    if (!milestonesEnabledRef.current) return
-
     const info = MILESTONE_TOAST[milestone]
 
     // Flash the specific card
@@ -119,8 +111,8 @@ export default function GoalsList({ hustleId, hustleColor, globalOnly, title }: 
     }
   }, [])
 
-  // Wire up milestone detector
-  useGoalMilestones(goals, handleMilestone, milestonesEnabled)
+  // Wire up milestone detector (always enabled)
+  useGoalMilestones(goals, handleMilestone, true)
 
   const hustleMap = hustles.reduce<Record<string, Hustle>>((m, h) => { m[h.id] = h; return m }, {})
 

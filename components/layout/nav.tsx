@@ -11,6 +11,7 @@ import {
   BookOpen,
 } from 'lucide-react'
 import { useProfile } from '@/lib/hooks/use-profile'
+import { useFeatureFlags } from '@/lib/context/feature-flags-context'
 
 const NAV_ITEMS = [
   { href: '/',          label: 'Dashboard', Icon: LayoutDashboard },
@@ -70,6 +71,7 @@ export function MobileHeader() {
 
 /* ── Mobile bottom nav ─────────────────────────────────────────────────────── */
 function MobileNav({ pathname }: { pathname: string }) {
+  const { isInternal } = useFeatureFlags()
   return (
     <nav
       className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pt-3 pb-8 rounded-t-[24px]"

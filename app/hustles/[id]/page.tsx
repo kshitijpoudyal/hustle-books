@@ -16,6 +16,7 @@ import type { HustleCategory } from '@/lib/utils/constants'
 import { toast } from 'sonner'
 import type { Hustle, IncomeEntry, ExpenseEntry } from '@/lib/types'
 import GoalsList from '@/components/goals/goals-list'
+import { useFeatureFlags } from '@/lib/context/feature-flags-context'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -170,6 +171,8 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
   })
   const [loading, setLoading] = useState(true)
   const { includeDeprInProfit, includeTaxInProfit } = useUserSettings()
+  const { flag } = useFeatureFlags()
+  const goalsEnabled = flag('GOAL_MILESTONES')
 
   // Edit state
   const [editName, setEditName] = useState('')
@@ -411,7 +414,7 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
           <div className="grid grid-cols-1 gap-12">
 
             {/* Hustle Goals */}
-            <GoalsList hustleId={id} hustleColor={hustle.color} title="Hustle Goals" />
+            {goalsEnabled && <GoalsList hustleId={id} hustleColor={hustle.color} title="Hustle Goals" />}
 
             {/* Recent Activity */}
             <section>
@@ -638,7 +641,7 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
             <aside className="col-span-4 space-y-8">
 
               {/* Hustle Goals */}
-              <GoalsList hustleId={id} hustleColor={hustle.color} title="Hustle Goals" />
+              {goalsEnabled && <GoalsList hustleId={id} hustleColor={hustle.color} title="Hustle Goals" />}
 
               {/* Growth Pulse */}
               <div

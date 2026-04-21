@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.user_feature_flags (
 
 ALTER TABLE public.user_feature_flags ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "users manage own flags" ON public.user_feature_flags;
 CREATE POLICY "users manage own flags"
   ON public.user_feature_flags
   FOR ALL
