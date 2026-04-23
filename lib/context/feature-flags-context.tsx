@@ -51,28 +51,42 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
 
   const keyToIdRef = useRef<Record<string, string>>({})
   const userIdRef = useRef<string | null>(null)
+  const loadedRef = useRef(false)
+  const loadingRef = useRef(false)
 
   useEffect(() => {
     const supabase = createClient()
 
     async function load(userId: string) {
+      if (loadingRef.current) return
+      loadingRef.current = true
       userIdRef.current = userId
 
-      const { data: profile } = await supabase
-        .from('users')
-        .select('user_group')
-        .eq('id', userId)
-        .single()
+      try {
+        const { data: profile, error } = await supabase
+          .from('users')
+          .select('user_group')
+          .eq('id', userId)
+          .single()
 
-      const group: UserGroup =
-        (profile?.user_group as UserGroup | null) ?? UserGroup.PUBLIC
-      setUserGroup(group)
+        if (error) {
+          console.error('[FeatureFlags] Failed to fetch user group:', error.message)
+          return  // loadedRef stays false — allows retry on next auth event
+        }
 
-      const resolved = await loadUserFlags(userId, group)
-      keyToIdRef.current = resolved.keyToId
-      setVisibleFlagKeys(resolved.visibleFlagKeys)
-      setKeyToStage(resolved.keyToStage)
-      setStored(resolved.stored)
+        const group: UserGroup =
+          (profile?.user_group as UserGroup | null) ?? UserGroup.PUBLIC
+        setUserGroup(group)
+        loadedRef.current = true
+
+        const resolved = await loadUserFlags(userId, group)
+        keyToIdRef.current = resolved.keyToId
+        setVisibleFlagKeys(resolved.visibleFlagKeys)
+        setKeyToStage(resolved.keyToStage)
+        setStored(resolved.stored)
+      } finally {
+        loadingRef.current = false
+      }
     }
 
     // Initial load — may return null on mobile before auth is ready
@@ -80,11 +94,16 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
       if (user) load(user.id)
     })
 
-    // Re-run when the session becomes available (handles mobile race condition
-    // where auth initializes after the effect first runs)
+    // Re-run when the session becomes available. Also retries if the initial
+    // load failed (loadedRef.current stays false on error), which handles the
+    // mobile case where the DB query fails before auth is fully established.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      if (session?.user && session.user.id !== userIdRef.current) {
-        load(session.user.id)
+      if (session?.user) {
+        const isNewUser = session.user.id !== userIdRef.current
+        const needsRetry = !loadedRef.current
+        if (isNewUser || needsRetry) {
+          load(session.user.id)
+        }
       }
     })
 
