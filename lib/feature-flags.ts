@@ -25,12 +25,6 @@ export interface FlagDefinition {
  */
 export const FLAG_REGISTRY: FlagDefinition[] = [
   {
-    key: 'VOICE_INPUT',
-    label: 'Voice Input',
-    description: 'Mic button on the Log page for voice-to-text transaction entry.',
-    releaseStage: FeatureReleaseStage.BETA,
-  },
-  {
     key: 'GOAL_MILESTONES',
     label: 'Income Goals',
     description: 'Income goal tracking on the Dashboard and Hustle Details pages. Includes progress cards, confetti, and milestone toasts.',
