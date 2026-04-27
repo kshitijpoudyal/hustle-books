@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmed, setConfirmed] = useState(false)
 
   function fillDemo() {
     setMode('login')
@@ -47,7 +48,11 @@ export default function LoginPage() {
       if (error) {
         setError(error.message)
       } else {
-        toast.success('Account created — check your email to confirm.')
+        setMode('login')
+        setConfirmed(true)
+        setEmail('')
+        setPassword('')
+        setFullName('')
       }
     }
 
@@ -82,6 +87,14 @@ export default function LoginPage() {
           <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">
             {mode === 'login' ? 'Sign in' : 'Create account'}
           </h2>
+
+          {/* Confirmation pending banner */}
+          {confirmed && (
+            <div className="mb-5 rounded-xl p-4" style={{ backgroundColor: 'rgba(0,106,104,0.08)', border: '1px solid rgba(0,106,104,0.2)' }}>
+              <p className="font-label text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--secondary)' }}>Check your inbox</p>
+              <p className="text-sm text-[var(--on-surface)]">Click the confirmation link we sent to activate your account, then sign in.</p>
+            </div>
+          )}
 
           {/* Demo credentials banner */}
           {mode === 'login' && (
@@ -122,7 +135,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={e => { setEmail(e.target.value); setConfirmed(false) }}
                 placeholder="you@example.com"
                 required
                 className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-[var(--on-surface)] placeholder:text-[var(--on-surface-variant)] placeholder:opacity-50 focus:outline-none focus:ring-2 focus:ring-[var(--secondary)] transition-shadow"

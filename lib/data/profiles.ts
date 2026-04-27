@@ -3,7 +3,7 @@ import type { Profile } from '@/lib/types'
 
 export async function fetchProfile(): Promise<Profile | null> {
   const supabase = createClient()
-  const { data } = await supabase.from('users').select('*').single()
+  const { data } = await supabase.from('users').select('*').maybeSingle()
   return (data as Profile | null) ?? null
 }
 

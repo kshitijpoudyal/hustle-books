@@ -51,13 +51,55 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.from('users').select('settings').single().then(
-      (res: { data: { settings: unknown } | null }) => {
-        setSettings((res.data?.settings as UserSettings) ?? DEFAULT_SETTINGS)
-        setLoading(false)
+    async function init() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+
+      const { data } = await supabase
+        .from('users')
+        .select('settings')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (data) {
+        setSettings((data.settings as UserSettings) ?? DEFAULT_SETTINGS)
+      } else {
+        // Trigger may have failed or not run — bootstrap the profile row manually
+        await supabase.from('users').insert({
+          id: user.id,
+          full_name: user.user_metadata?.full_name ?? null,
+          user_group: 'public',
+          settings: DEFAULT_SETTINGS,
+        })
+        setSettings(DEFAULT_SETTINGS)
       }
-    )
+
+      // Always ensure a default rate snapshot exists (trigger doesn't seed one)
+      const { data: snapshots } = await supabase
+        .from('rate_snapshots')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+
+      if (!snapshots || snapshots.length === 0) {
+        await supabase.from('rate_snapshots').insert({
+          user_id: user.id,
+          label: 'My Rates',
+          gas_price: 3.89,
+          mpg: 30,
+          irs_rate: 0.67,
+          tax_rate: 25,
+          depreciation_per_mile: 0,
+          effective_date: new Date().toISOString().split('T')[0],
+          is_locked: false,
+          notes: null,
+        })
+      }
+
+      setLoading(false)
+    }
+    init()
   }, [])
 
   const updateSettings = useCallback(async (patch: Partial<UserSettings>) => {

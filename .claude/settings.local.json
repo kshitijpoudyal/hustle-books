@@ -16,7 +16,16 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(node:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(find:*)",
+      "Bash(npx supabase:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_fcfd6763714f4ec56c8dcad67b7a485a641c39d1 npx supabase@2.95.3 db query --project-ref qmuwrxxwgdombwqkceeg \"SELECT proname, prosrc FROM pg_proc WHERE proname LIKE '%user%' OR proname LIKE '%profile%' OR proname LIKE '%handle_new%' LIMIT 20;\")",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_fcfd6763714f4ec56c8dcad67b7a485a641c39d1 npx supabase@2.95.3 db query --linked \"SELECT proname, prosrc FROM pg_proc WHERE proname LIKE '%user%' OR proname LIKE '%profile%' OR proname LIKE '%handle_new%' LIMIT 20;\")",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_fcfd6763714f4ec56c8dcad67b7a485a641c39d1 npx supabase@2.95.3 link --project-ref qmuwrxxwgdombwqkceeg)",
+      "Bash(curl:*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d, indent=2\\)\\)\")",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_fcfd6763714f4ec56c8dcad67b7a485a641c39d1 npx:*)",
+      "Bash(ls:*)"
     ]
   }
 }
