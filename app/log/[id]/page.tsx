@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useHustles } from '@/lib/hooks/use-hustles'
 import { useIncome } from '@/lib/hooks/use-income'
 import { useExpenses } from '@/lib/hooks/use-expenses'
+import { ImageAttachment } from '@/components/image-attachment'
 import { useRates } from '@/lib/hooks/use-rates'
 import { resolveSnapshot } from '@/lib/utils/rate-resolver'
 import { calcFuelCost, calcDepreciationCost, calcNetMargin, calcMileagePreviewTotal } from '@/lib/utils/calculations'
@@ -67,6 +68,7 @@ export default function EditEntryPage() {
   const [incomeMileage, setIncomeMileage] = useState('')
   const [incomeDate, setIncomeDate] = useState('')
   const [incomeTaxable, setIncomeTaxable] = useState(true)
+  const [incomeReceiptUrl, setIncomeReceiptUrl] = useState<string | null>(null)
 
   // Expense fields
   const [expenseHustleId, setExpenseHustleId] = useState('')
@@ -75,6 +77,7 @@ export default function EditEntryPage() {
   const [expenseDesc, setExpenseDesc] = useState('')
   const [expenseRecurring, setExpenseRecurring] = useState(false)
   const [expenseDate, setExpenseDate] = useState('')
+  const [expenseReceiptUrl, setExpenseReceiptUrl] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -97,6 +100,7 @@ export default function EditEntryPage() {
         setIncomeMileage(entry.mileage != null ? String(entry.mileage) : '')
         setIncomeDate(entry.date)
         setIncomeTaxable(entry.is_taxable)
+        setIncomeReceiptUrl(entry.receipt_image_url ?? null)
         setLoading(false)
         return
       }
@@ -116,6 +120,7 @@ export default function EditEntryPage() {
         setExpenseDesc(entry.description ?? '')
         setExpenseRecurring(entry.is_recurring)
         setExpenseDate(entry.date)
+        setExpenseReceiptUrl(entry.receipt_image_url ?? null)
         setLoading(false)
         return
       }
@@ -163,6 +168,7 @@ export default function EditEntryPage() {
       date: incomeDate,
       mileage_method: 'actual',
       is_taxable: incomeTaxable,
+      receipt_image_url: incomeReceiptUrl,
     })
     setSubmitting(false)
     if (ok) { toast.success('Entry updated!'); router.push('/history') }
@@ -180,6 +186,7 @@ export default function EditEntryPage() {
       description: expenseDesc.trim() || null,
       is_recurring: expenseRecurring,
       date: expenseDate,
+      receipt_image_url: expenseReceiptUrl,
     })
     setSubmitting(false)
     if (ok) { toast.success('Entry updated!'); router.push('/history') }
@@ -389,6 +396,9 @@ export default function EditEntryPage() {
               />
             </div>
 
+            {/* Receipt */}
+            <ImageAttachment value={incomeReceiptUrl} onChange={setIncomeReceiptUrl} />
+
             {/* Taxable Income toggle */}
             <div className="flex justify-between items-center bg-[var(--surface-container-low)] squircle p-5">
               <div>
@@ -507,6 +517,9 @@ export default function EditEntryPage() {
                 className="bg-transparent w-full border-none p-0 text-[var(--on-surface)] font-body focus:ring-0 focus:outline-none resize-none"
               />
             </div>
+
+            {/* Receipt */}
+            <ImageAttachment value={expenseReceiptUrl} onChange={setExpenseReceiptUrl} />
 
             {/* Recurring toggle */}
             <div className="flex justify-between items-center bg-[var(--surface-container-low)] squircle p-5">

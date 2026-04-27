@@ -74,6 +74,7 @@ export interface IncomeEntry {
   depreciation_cost_at_log: number | null
   cogs: number | null
   is_taxable: boolean
+  receipt_image_url: string | null
   date: string
   created_at: string
   updated_at: string
@@ -90,6 +91,7 @@ export interface ExpenseEntry {
   category: 'fuel' | 'fees' | 'supplies' | 'maintenance' | 'phone' | 'other'
   description: string | null
   is_recurring: boolean
+  receipt_image_url: string | null
   date: string
   created_at: string
   updated_at: string

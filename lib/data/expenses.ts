@@ -34,6 +34,7 @@ export async function insertExpense(
     description?: string
     is_recurring?: boolean
     date: string
+    receipt_image_url?: string | null
   }
 ): Promise<string | null> {
   const supabase = createClient()
@@ -45,13 +46,14 @@ export async function insertExpense(
     description: payload.description ?? null,
     is_recurring: payload.is_recurring ?? false,
     date: payload.date,
+    receipt_image_url: payload.receipt_image_url ?? null,
   })
   return error?.message ?? null
 }
 
 export async function updateExpense(
   id: string,
-  payload: Partial<Pick<ExpenseEntry, 'amount' | 'category' | 'description' | 'hustle_id' | 'is_recurring' | 'date'>>
+  payload: Partial<Pick<ExpenseEntry, 'amount' | 'category' | 'description' | 'hustle_id' | 'is_recurring' | 'date' | 'receipt_image_url'>>
 ): Promise<string | null> {
   const supabase = createClient()
   const { error } = await supabase.from('expenses').update(payload).eq('id', id)

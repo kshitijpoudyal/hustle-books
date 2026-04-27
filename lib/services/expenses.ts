@@ -17,6 +17,7 @@ export async function createExpense(
     description?: string
     is_recurring?: boolean
     date: string
+    receipt_image_url?: string | null
   }
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const userId = await getAuthUserId()
@@ -28,7 +29,7 @@ export async function createExpense(
 
 export async function editExpense(
   id: string,
-  data: Partial<Pick<ExpenseEntry, 'amount' | 'category' | 'description' | 'hustle_id' | 'is_recurring' | 'date'>>
+  data: Partial<Pick<ExpenseEntry, 'amount' | 'category' | 'description' | 'hustle_id' | 'is_recurring' | 'date' | 'receipt_image_url'>>
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const error = await updateExpense(id, data)
   if (error) return { ok: false, error }
