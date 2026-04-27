@@ -35,6 +35,7 @@ export interface IncomeInsertPayload {
   fuel_cost_at_log: number | null
   depreciation_cost_at_log: number | null
   is_taxable: boolean
+  receipt_image_url: string | null
 }
 
 export async function insertIncome(payload: IncomeInsertPayload): Promise<string | null> {

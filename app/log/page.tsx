@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useHustles } from '@/lib/hooks/use-hustles'
 import { useIncome } from '@/lib/hooks/use-income'
 import { useExpenses } from '@/lib/hooks/use-expenses'
+import { ImageAttachment } from '@/components/image-attachment'
 import { useRates } from '@/lib/hooks/use-rates'
 import { resolveSnapshot } from '@/lib/utils/rate-resolver'
 import { calcFuelCost, calcDepreciationCost, calcNetMargin, calcMileagePreviewTotal } from '@/lib/utils/calculations'
@@ -49,6 +50,7 @@ export default function LogPage() {
   const [incomeDate, setIncomeDate] = useState(todayStr())
 
   const [incomeTaxable, setIncomeTaxable] = useState(true)
+  const [incomeReceiptUrl, setIncomeReceiptUrl] = useState<string | null>(null)
 
   // Expense state
   const [expenseHustleId, setExpenseHustleId] = useState('')
@@ -57,6 +59,7 @@ export default function LogPage() {
   const [expenseDesc, setExpenseDesc] = useState('')
   const [expenseRecurring, setExpenseRecurring] = useState(false)
   const [expenseDate, setExpenseDate] = useState(todayStr())
+  const [expenseReceiptUrl, setExpenseReceiptUrl] = useState<string | null>(null)
   const [hasMileageOnDate, setHasMileageOnDate] = useState(false)
 
   const activeHustles = hustles.filter(h => h.is_active)
@@ -95,11 +98,11 @@ export default function LogPage() {
 
   function resetIncomeForm() {
     setIncomeHustleId(''); setIncomeAmount(''); setIncomeCogs(''); setIncomeDesc('')
-    setIncomeMileage(''); setIncomeDate(todayStr()); setIncomeTaxable(true)
+    setIncomeMileage(''); setIncomeDate(todayStr()); setIncomeTaxable(true); setIncomeReceiptUrl(null)
   }
   function resetExpenseForm() {
     setExpenseHustleId(''); setExpenseAmount(''); setExpenseCategory('fuel')
-    setExpenseDesc(''); setExpenseRecurring(false); setExpenseDate(todayStr())
+    setExpenseDesc(''); setExpenseRecurring(false); setExpenseDate(todayStr()); setExpenseReceiptUrl(null)
   }
 
   async function doSubmitIncome() {
@@ -114,6 +117,7 @@ export default function LogPage() {
       description: incomeDesc.trim() || undefined,
       mileage: miles, cogs, date: incomeDate, mileage_method: 'actual',
       is_taxable: incomeTaxable,
+      receipt_image_url: incomeReceiptUrl,
     })
     setSubmitting(false)
     if (ok) { toast.success('Income logged!'); resetIncomeForm(); router.push('/') }
@@ -127,6 +131,7 @@ export default function LogPage() {
       hustle_id: expenseHustleId || null, amount, category: expenseCategory,
       description: expenseDesc.trim() || undefined,
       is_recurring: expenseRecurring, date: expenseDate,
+      receipt_image_url: expenseReceiptUrl,
     })
     setSubmitting(false)
     if (ok) { toast.success('Expense logged!'); resetExpenseForm(); router.push('/') }
@@ -341,6 +346,9 @@ export default function LogPage() {
                 />
               </div>
 
+              {/* Receipt image */}
+              <ImageAttachment value={incomeReceiptUrl} onChange={setIncomeReceiptUrl} />
+
               {/* Taxable Income toggle */}
               <div className="flex justify-between items-center bg-[var(--surface-container-low)] squircle p-5">
                 <div>
@@ -496,6 +504,9 @@ export default function LogPage() {
                   className="bg-transparent w-full border-none p-0 text-[var(--on-surface)] font-body focus:ring-0 focus:outline-none resize-none"
                 />
               </div>
+
+              {/* Receipt image */}
+              <ImageAttachment value={expenseReceiptUrl} onChange={setExpenseReceiptUrl} />
 
               {/* CTA */}
               <button
@@ -716,6 +727,14 @@ export default function LogPage() {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Receipt attachment — full width */}
+              <div className="col-span-2">
+                <ImageAttachment
+                  value={tab === 'income' ? incomeReceiptUrl : expenseReceiptUrl}
+                  onChange={tab === 'income' ? setIncomeReceiptUrl : setExpenseReceiptUrl}
+                />
               </div>
 
               {/* Mileage row — income only, full width */}

@@ -30,6 +30,7 @@ export function useExpenses(filters?: ExpenseFilters) {
     description?: string
     is_recurring?: boolean
     date: string
+    receipt_image_url?: string | null
   }) {
     const result = await createExpense(data)
     if (!result.ok) { toast.error(result.error); return false }
@@ -46,6 +47,7 @@ export function useExpenses(filters?: ExpenseFilters) {
     description: string | null
     is_recurring: boolean
     date: string
+    receipt_image_url: string | null
   }>) {
     const result = await editExpense(id, data)
     if (!result.ok) { toast.error(result.error); return false }

@@ -25,7 +25,9 @@
       "Bash(curl:*)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d, indent=2\\)\\)\")",
       "Bash(SUPABASE_ACCESS_TOKEN=sbp_fcfd6763714f4ec56c8dcad67b7a485a641c39d1 npx:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(sort -k9)",
+      "Bash(grep -A 150 \"-- Income entries\" /Users/a266352/kay/hustle-books/HUSTLEBOOKS_PROJECT_PLAN.md)"
     ]
   }
 }

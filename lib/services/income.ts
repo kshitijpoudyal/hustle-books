@@ -21,6 +21,7 @@ export interface CreateIncomeInput {
   date: string
   mileage_method: 'actual' | 'irs'
   is_taxable?: boolean
+  receipt_image_url?: string | null
 }
 
 /** Resolves the correct rate snapshot for the entry's date and bakes in fuel/depreciation costs. */
@@ -65,6 +66,7 @@ export async function createIncome(
     fuel_cost_at_log,
     depreciation_cost_at_log,
     is_taxable: data.is_taxable ?? true,
+    receipt_image_url: data.receipt_image_url ?? null,
   })
 
   if (error) return { ok: false, error }
@@ -80,6 +82,7 @@ export interface UpdateIncomeInput {
   date?: string
   mileage_method?: 'actual' | 'irs'
   is_taxable?: boolean
+  receipt_image_url?: string | null
 }
 
 export async function editIncome(
