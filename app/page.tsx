@@ -83,17 +83,17 @@ export default function DashboardPage() {
           {/* Revenue Trend */}
           <RevenueTrendCard data={weeklyBars} loading={loading} variant="mobile" period={period} />
 
-          {/* Recent Observations */}
+          {/* Recent Transactions */}
           <section className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="font-headline font-extrabold text-xl text-[var(--on-surface)]">
-                Recent Observations
+                Recent Transactions
               </h2>
               <Link
                 href="/history"
                 className="font-label text-[10px] uppercase tracking-widest text-[var(--secondary)] font-bold"
               >
-                View Archive
+                View All
               </Link>
             </div>
             <RecentActivity entries={recentActivity} loading={loading} />
@@ -157,13 +157,13 @@ export default function DashboardPage() {
           >
             <div className="flex justify-between items-center mb-8">
               <h2 className="font-headline text-xl font-bold text-[var(--primary)]">
-                Recent Observations
+                Recent Transactions
               </h2>
               <Link
                 href="/history"
                 className="font-label text-[10px] uppercase tracking-widest font-bold text-[var(--secondary)] hover:opacity-70 transition-opacity"
               >
-                View Archive
+                View All
               </Link>
             </div>
             <div className="flex flex-col gap-y-4 flex-1">
