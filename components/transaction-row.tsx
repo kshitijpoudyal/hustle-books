@@ -1,10 +1,13 @@
 'use client'
 
+import { useState, useRef } from 'react'
 import Link from 'next/link'
-import { ArrowUp, ArrowDown, RefreshCw, MoreHorizontal } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowUp, ArrowDown, RefreshCw, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { formatCurrency, formatDate, formatMileage } from '@/lib/utils/formatters'
 import { calcNetMargin } from '@/lib/utils/calculations'
 import { EXPENSE_CATEGORIES } from '@/lib/utils/constants'
+import { useFeatureFlags } from '@/lib/context/feature-flags-context'
 import type { TransactionEntry, IncomeEntry, ExpenseEntry } from '@/lib/types'
 
 export type TransactionRowVariant = 'simple' | 'detailed' | 'hustle'
@@ -13,6 +16,8 @@ export interface TransactionRowProps {
   entry: TransactionEntry
   /** simple = no meta line (dashboard); detailed = full info (history); hustle = hide hustle name (hustle detail page) */
   variant?: TransactionRowVariant
+  /** When provided and SWIPE_ACTIONS flag is on, enables swipe-to-delete on mobile */
+  onDelete?: () => void
 }
 
 type Inc = IncomeEntry & { entry_type: 'income' }
@@ -37,15 +42,22 @@ function getMeta(inc: Inc | null, variant: TransactionRowVariant): string {
 
 // ── Mobile ─────────────────────────────────────────────────────────────────
 
-export function MobileTransactionRow({ entry, variant = 'detailed' }: TransactionRowProps) {
+export function MobileTransactionRow({ entry, variant = 'detailed', onDelete }: TransactionRowProps) {
   const isIncome = entry.entry_type === 'income'
   const inc = isIncome ? (entry as Inc) : null
   const exp = !isIncome ? (entry as Exp) : null
+  const { flag } = useFeatureFlags()
+  const swipeEnabled = flag('SWIPE_ACTIONS') && !!onDelete
+  const hustleColorBadgesEnabled = flag('HUSTLE_COLOR_BADGES')
+  const router = useRouter()
+
+  const [swiped, setSwiped] = useState(false)
+  const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
 
   const label = entry.description
     ?? (isIncome ? 'Income' : EXPENSE_CATEGORIES.find(c => c.value === exp?.category)?.label ?? 'Expense')
 
-  // category/hustle subtitle — hidden in simple and hustle variants
   const categoryText = (variant === 'simple' || variant === 'hustle')
     ? null
     : isIncome
@@ -53,12 +65,10 @@ export function MobileTransactionRow({ entry, variant = 'detailed' }: Transactio
       : (EXPENSE_CATEGORIES.find(c => c.value === exp?.category)?.label ?? 'Expense')
 
   const meta = getMeta(inc, variant)
+  const ACTION_WIDTH = 120
 
-  return (
-    <Link
-      href={`/log/${entry.id}`}
-      className="squircle bg-[var(--surface-container-lowest)] p-4 flex items-center gap-3 active:scale-[0.98] transition-transform shadow-[0_2px_12px_rgba(2,36,72,0.06)]"
-    >
+  const rowContent = (
+    <>
       <div
         className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
         style={{
@@ -75,9 +85,14 @@ export function MobileTransactionRow({ entry, variant = 'detailed' }: Transactio
 
       <div className="flex-1 min-w-0">
         <p className="font-headline font-bold text-[var(--on-surface)] truncate text-sm">{label}</p>
-        <p className="font-label text-[10px] uppercase tracking-[0.06rem] text-[var(--on-surface-variant)] opacity-70 mt-0.5">
-          {categoryText ? `${categoryText} · ` : ''}{formatDate(entry.date, 'short')}
-        </p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          {hustleColorBadgesEnabled && isIncome && inc?.hustle?.color && categoryText && (
+            <span className="w-2 h-2 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: inc.hustle.color }} />
+          )}
+          <p className="font-label text-[10px] uppercase tracking-[0.06rem] text-[var(--on-surface-variant)] opacity-70">
+            {categoryText ? `${categoryText} · ` : ''}{formatDate(entry.date, 'short')}
+          </p>
+        </div>
         {meta && (
           <p className="font-label text-[9px] uppercase tracking-[0.05rem] mt-0.5" style={{ color: 'var(--on-surface-variant)', opacity: 0.5 }}>
             {meta}
@@ -99,7 +114,68 @@ export function MobileTransactionRow({ entry, variant = 'detailed' }: Transactio
           {isIncome ? 'Income' : 'Expense'}
         </p>
       </div>
-    </Link>
+    </>
+  )
+
+  if (!swipeEnabled) {
+    return (
+      <Link
+        href={`/log/${entry.id}`}
+        className="squircle bg-[var(--surface-container-lowest)] p-4 flex items-center gap-3 active:scale-[0.98] transition-transform shadow-[0_2px_12px_rgba(2,36,72,0.06)]"
+      >
+        {rowContent}
+      </Link>
+    )
+  }
+
+  return (
+    <div
+      className="relative overflow-hidden shadow-[0_2px_12px_rgba(2,36,72,0.06)]"
+      style={{ borderRadius: '1.25rem' }}
+    >
+      {/* Action buttons revealed on swipe */}
+      <div className="absolute inset-y-0 right-0 flex" style={{ width: ACTION_WIDTH }}>
+        <Link
+          href={`/log/${entry.id}`}
+          className="flex-1 flex flex-col items-center justify-center gap-1"
+          style={{ backgroundColor: 'var(--primary)' }}
+        >
+          <Pencil className="w-4 h-4 text-white" strokeWidth={1.5} />
+          <span className="font-label text-[8px] uppercase tracking-widest text-white/80">Edit</span>
+        </Link>
+        <button
+          onClick={() => { setSwiped(false); onDelete?.() }}
+          className="flex-1 flex flex-col items-center justify-center gap-1"
+          style={{ backgroundColor: 'var(--expense)' }}
+        >
+          <Trash2 className="w-4 h-4 text-white" strokeWidth={1.5} />
+          <span className="font-label text-[8px] uppercase tracking-widest text-white/80">Delete</span>
+        </button>
+      </div>
+
+      {/* Sliding main content */}
+      <div
+        className="squircle bg-[var(--surface-container-lowest)] p-4 flex items-center gap-3 relative z-10 transition-transform duration-200"
+        style={{ transform: `translateX(${swiped ? -ACTION_WIDTH : 0}px)` }}
+        onTouchStart={e => {
+          touchStartX.current = e.touches[0].clientX
+          touchStartY.current = e.touches[0].clientY
+        }}
+        onTouchEnd={e => {
+          const dx = e.changedTouches[0].clientX - touchStartX.current
+          const dy = e.changedTouches[0].clientY - touchStartY.current
+          if (Math.abs(dx) < 8 && Math.abs(dy) < 8) {
+            if (swiped) setSwiped(false)
+            else router.push(`/log/${entry.id}`)
+          } else if (Math.abs(dx) > Math.abs(dy) * 0.7) {
+            if (dx < -30) setSwiped(true)
+            else if (dx > 20) setSwiped(false)
+          }
+        }}
+      >
+        {rowContent}
+      </div>
+    </div>
   )
 }
 

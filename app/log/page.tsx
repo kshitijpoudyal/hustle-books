@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Loader2, ArrowRight, TriangleAlert } from 'lucide-react'
+import { Loader2, ArrowRight, TriangleAlert, History } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useHustles } from '@/lib/hooks/use-hustles'
 import { useIncome } from '@/lib/hooks/use-income'
@@ -16,7 +16,7 @@ import { calcFuelCost, calcDepreciationCost, calcNetMargin, calcMileagePreviewTo
 import { formatCurrency, formatGasPrice, formatMpg } from '@/lib/utils/formatters'
 import { EXPENSE_CATEGORIES, IRS_MILEAGE_RATE_DEFAULT } from '@/lib/utils/constants'
 import { useFeatureFlags } from '@/lib/context/feature-flags-context'
-import type { ExpenseEntry } from '@/lib/types'
+import type { ExpenseEntry, IncomeEntry } from '@/lib/types'
 
 type Tab = 'income' | 'expense'
 
@@ -46,6 +46,9 @@ export default function LogPage() {
   const { snapshots, loading: ratesLoading } = useRates()
   const { flag } = useFeatureFlags()
   const dateShortcutsEnabled = flag('DATE_SHORTCUTS')
+  const logAgainEnabled = flag('LOG_AGAIN')
+  const mileagePresetsEnabled = flag('MILEAGE_PRESETS')
+  const ratesNudgeEnabled = flag('RATES_NUDGE')
 
   const [tab, setTab] = useState<Tab>('income')
   const [submitting, setSubmitting] = useState(false)
@@ -70,6 +73,7 @@ export default function LogPage() {
   const [expenseDate, setExpenseDate] = useState(todayStr())
   const [expenseReceiptUrl, setExpenseReceiptUrl] = useState<string | null>(null)
   const [hasMileageOnDate, setHasMileageOnDate] = useState(false)
+  const [lastEntry, setLastEntry] = useState<IncomeEntry | null>(null)
 
   const activeHustles = hustles.filter(h => h.is_active)
 
@@ -93,6 +97,21 @@ export default function LogPage() {
     return () => { cancelled = true }
   }, [expenseCategory, expenseDate])
 
+  useEffect(() => {
+    if (!logAgainEnabled) return
+    const supabase = createClient()
+    let cancelled = false
+    supabase
+      .from('income')
+      .select('*, hustle:hustles(id, name, color, icon, category, is_active, user_id, created_at)')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data }: { data: IncomeEntry[] | null }) => {
+        if (!cancelled && data?.[0]) setLastEntry(data[0])
+      })
+    return () => { cancelled = true }
+  }, [logAgainEnabled])
+
   const ratePreview = useMemo(() => {
     const miles = parseFloat(incomeMileage)
     if (!miles || miles <= 0 || ratesLoading) return null
@@ -109,6 +128,13 @@ export default function LogPage() {
     setIncomeHustleId(''); setIncomeAmount(''); setIncomeCogs(''); setIncomeDesc('')
     setIncomeMileage(''); setIncomeDate(todayStr()); setIncomeTaxable(true); setIncomeReceiptUrl(null)
   }
+  function fillFromLastEntry() {
+    if (!lastEntry) return
+    setIncomeHustleId(lastEntry.hustle_id)
+    setIncomeMileage(lastEntry.mileage != null ? String(lastEntry.mileage) : '')
+    setIncomeDesc(lastEntry.description ?? '')
+  }
+
   function resetExpenseForm() {
     setExpenseHustleId(''); setExpenseAmount(''); setExpenseCategory('fuel')
     setExpenseDesc(''); setExpenseRecurring(false); setExpenseDate(todayStr()); setExpenseReceiptUrl(null)
@@ -214,6 +240,45 @@ export default function LogPage() {
           {/* ── INCOME FORM ── */}
           {tab === 'income' && (
             <form onSubmit={handleIncomeSubmit} className="space-y-6">
+
+              {/* Rates Nudge — shown when RATES_NUDGE flag on and no snapshots */}
+              {ratesNudgeEnabled && !ratesLoading && snapshots.length === 0 && (
+                <div
+                  className="flex items-start gap-3 squircle p-4"
+                  style={{ backgroundColor: 'var(--tertiary-fixed)' }}
+                >
+                  <TriangleAlert className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--tertiary-container)' }} strokeWidth={1.5} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-label text-[9px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--tertiary-container)' }}>No rates set</p>
+                    <p className="text-xs leading-relaxed" style={{ color: 'var(--tertiary-container)', opacity: 0.85 }}>Mileage costs won&apos;t be calculated until you add a rate snapshot.</p>
+                  </div>
+                  <Link href="/rates" className="font-label text-[9px] uppercase tracking-widest font-bold flex-shrink-0 mt-0.5" style={{ color: 'var(--tertiary-container)' }}>Set rates →</Link>
+                </div>
+              )}
+
+              {/* Log Again — pre-fill from last income entry */}
+              {logAgainEnabled && lastEntry && (
+                <button
+                  type="button"
+                  onClick={fillFromLastEntry}
+                  className="w-full flex items-center gap-3 squircle p-4 text-left transition-opacity active:opacity-70"
+                  style={{ backgroundColor: 'var(--surface-container-low)' }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'rgba(134,244,241,0.3)', color: 'var(--on-secondary-container)' }}
+                  >
+                    <History className="w-4 h-4" strokeWidth={1.5} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-70">Log Again</p>
+                    <p className="font-headline font-bold text-sm text-[var(--primary)] truncate">
+                      {lastEntry.hustle?.name ?? 'Last hustle'}{lastEntry.mileage ? ` · ${lastEntry.mileage} mi` : ''}
+                    </p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-[var(--secondary)] flex-shrink-0" />
+                </button>
+              )}
 
               {/* Hustle selector */}
               <div className="bg-[var(--surface-container-low)] squircle p-5">
@@ -326,6 +391,22 @@ export default function LogPage() {
                   onChange={e => setIncomeMileage(e.target.value)}
                   className={bareInput}
                 />
+
+                {mileagePresetsEnabled && (
+                  <div className="flex gap-2 mt-3 flex-wrap">
+                    {[5, 10, 15, 25].map(preset => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setIncomeMileage(v => String((parseFloat(v) || 0) + preset))}
+                        className="px-3 py-1.5 rounded-full font-label text-[10px] uppercase tracking-[0.06rem] transition-colors"
+                        style={{ backgroundColor: 'var(--surface-container-high)', color: 'var(--on-surface-variant)' }}
+                      >
+                        +{preset}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {ratePreview && (
                   <div
@@ -577,6 +658,45 @@ export default function LogPage() {
               ))}
             </div>
 
+            {/* Rates Nudge — desktop */}
+            {ratesNudgeEnabled && !ratesLoading && snapshots.length === 0 && (
+              <div
+                className="flex items-start gap-4 squircle p-5"
+                style={{ backgroundColor: 'var(--tertiary-fixed)' }}
+              >
+                <TriangleAlert className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--tertiary-container)' }} strokeWidth={1.5} />
+                <div className="flex-1">
+                  <p className="font-label text-[9px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--tertiary-container)' }}>No rates set</p>
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--tertiary-container)', opacity: 0.85 }}>Mileage costs won&apos;t be calculated until you add a rate snapshot.</p>
+                </div>
+                <Link href="/rates" className="font-label text-[9px] uppercase tracking-widest font-bold flex-shrink-0" style={{ color: 'var(--tertiary-container)' }}>Set rates →</Link>
+              </div>
+            )}
+
+            {/* Log Again — desktop */}
+            {logAgainEnabled && lastEntry && tab === 'income' && (
+              <button
+                type="button"
+                onClick={fillFromLastEntry}
+                className="flex items-center gap-4 squircle p-4 text-left transition-opacity hover:opacity-80 w-full"
+                style={{ backgroundColor: 'var(--surface-container-low)' }}
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: 'rgba(134,244,241,0.3)', color: 'var(--on-secondary-container)' }}
+                >
+                  <History className="w-4 h-4" strokeWidth={1.5} />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] opacity-70">Log Again</p>
+                  <p className="font-headline font-bold text-sm text-[var(--primary)] truncate">
+                    {lastEntry.hustle?.name ?? 'Last hustle'}{lastEntry.mileage ? ` · ${lastEntry.mileage} mi` : ''}
+                  </p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-[var(--secondary)] flex-shrink-0" />
+              </button>
+            )}
+
             {/* Hero amount */}
             <section
               className="squircle p-12 flex flex-col items-center justify-center gap-4"
@@ -793,6 +913,21 @@ export default function LogPage() {
                       onChange={e => setIncomeMileage(e.target.value)}
                       className="w-full bg-[var(--surface-container-highest)] border-none squircle h-14 px-6 font-headline text-xl text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--primary)]/10 focus:outline-none"
                     />
+                    {mileagePresetsEnabled && (
+                      <div className="flex gap-2 flex-wrap">
+                        {[5, 10, 15, 25].map(preset => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setIncomeMileage(v => String((parseFloat(v) || 0) + preset))}
+                            className="px-3 py-1.5 rounded-full font-label text-[10px] uppercase tracking-[0.06rem] transition-colors"
+                            style={{ backgroundColor: 'var(--surface-container-highest)', color: 'var(--on-surface-variant)' }}
+                          >
+                            +{preset}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {ratePreview && (
                       <div className="grid grid-cols-3 gap-3 text-center p-4 squircle" style={{ backgroundColor: 'rgba(228,226,221,0.5)' }}>
                         <div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import Link from 'next/link'
 import {
   Search,
@@ -11,9 +11,11 @@ import {
   ChevronDown,
   Check,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useIncome } from '@/lib/hooks/use-income'
 import { useExpenses } from '@/lib/hooks/use-expenses'
 import { useHustles } from '@/lib/hooks/use-hustles'
+import { useFeatureFlags } from '@/lib/context/feature-flags-context'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { calcTaxSetAside, calcNetProfit } from '@/lib/utils/calculations'
 import { MobileTransactionRow, DesktopTransactionRow, MobileTransactionRowSkeleton, DesktopTransactionRowSkeleton } from '@/components/transaction-row'
@@ -166,10 +168,10 @@ export default function HistoryPage() {
     date_to,
   }), [hustleFilter, date_from, date_to])
 
-  const { entries: incomeEntries, loading: incomeLoading } = useIncome(
+  const { entries: incomeEntries, loading: incomeLoading, deleteIncome } = useIncome(
     tab !== 'expenses' ? incomeFilters : undefined
   )
-  const { entries: expenseEntries, loading: expenseLoading } = useExpenses(
+  const { entries: expenseEntries, loading: expenseLoading, deleteExpense } = useExpenses(
     tab !== 'income' ? expenseFilters : undefined
   )
 
@@ -210,6 +212,19 @@ export default function HistoryPage() {
   const netProfit = calcNetProfit(totalIncome, totalExpenses, TAX_RATE_ESTIMATE * 100, 0, taxableIncome)
 
   const isFiltered = tab !== 'all' || dateRange !== 'all' || !!hustleFilter
+
+  const { flag } = useFeatureFlags()
+  const swipeActionsEnabled = flag('SWIPE_ACTIONS')
+
+  const handleDelete = useCallback(async (entry: AnyEntry) => {
+    let ok = false
+    if (entry.entry_type === 'income') {
+      ok = await deleteIncome(entry.id)
+    } else {
+      ok = await deleteExpense(entry.id)
+    }
+    if (ok) toast.success('Entry deleted')
+  }, [deleteIncome, deleteExpense])
 
   // Desktop pagination
   const totalPages = Math.max(1, Math.ceil(merged.length / DESKTOP_PAGE_SIZE))
@@ -409,7 +424,12 @@ export default function HistoryPage() {
             ) : (
               <>
                 {mobileEntries.map(entry => (
-                  <MobileTransactionRow key={`${entry.entry_type}-${entry.id}`} entry={entry} variant="detailed" />
+                  <MobileTransactionRow
+                    key={`${entry.entry_type}-${entry.id}`}
+                    entry={entry}
+                    variant="detailed"
+                    onDelete={swipeActionsEnabled ? () => handleDelete(entry) : undefined}
+                  />
                 ))}
                 {mobileVisible < merged.length && (
                   <button
