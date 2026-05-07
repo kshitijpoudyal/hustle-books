@@ -50,7 +50,8 @@ export function MobileHeader() {
         </span>
       </div>
       <div className="flex items-center gap-3">
-        <p className="text-[10px] text-[var(--on-surface-variant)]">
+        {/* Powered by KshitijStudio — hidden, re-enable when ready */}
+        {/* <p className="text-[10px] text-[var(--on-surface-variant)]">
           Powered by{' '}
           <a
             href="https://www.kshitijstudio.com"
@@ -60,7 +61,7 @@ export function MobileHeader() {
           >
             KshitijStudio
           </a>
-        </p>
+        </p> */}
         <div className="w-10 h-10 rounded-2xl bg-[var(--surface-container-high)] flex items-center justify-center flex-shrink-0">
           <span className="font-label text-xs font-semibold text-[var(--primary)]">{initials}</span>
         </div>
@@ -193,7 +194,8 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
           Log
         </Link>
 
-        <p className="mt-4 text-center text-[10px] text-[var(--on-surface-variant)]">
+        {/* Powered by KshitijStudio — hidden, re-enable when ready */}
+        {/* <p className="mt-4 text-center text-[10px] text-[var(--on-surface-variant)]">
           Powered by{' '}
           <a
             href="https://www.kshitijstudio.com"
@@ -203,7 +205,7 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
           >
             KshitijStudio
           </a>
-        </p>
+        </p> */}
 
         <div className="mt-4 flex items-center gap-x-3 px-2">
           <div className="w-10 h-10 rounded-full bg-[var(--surface-container-highest)] flex items-center justify-center flex-shrink-0">
