@@ -15,12 +15,19 @@ import { resolveSnapshot } from '@/lib/utils/rate-resolver'
 import { calcFuelCost, calcDepreciationCost, calcNetMargin, calcMileagePreviewTotal } from '@/lib/utils/calculations'
 import { formatCurrency, formatGasPrice, formatMpg } from '@/lib/utils/formatters'
 import { EXPENSE_CATEGORIES, IRS_MILEAGE_RATE_DEFAULT } from '@/lib/utils/constants'
+import { useFeatureFlags } from '@/lib/context/feature-flags-context'
 import type { ExpenseEntry } from '@/lib/types'
 
 type Tab = 'income' | 'expense'
 
 function todayStr(): string {
   return new Date().toISOString().split('T')[0]
+}
+
+function yesterdayStr(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return d.toISOString().split('T')[0]
 }
 
 function ChevronDown() {
@@ -37,6 +44,8 @@ export default function LogPage() {
   const { createIncome } = useIncome()
   const { createExpense } = useExpenses()
   const { snapshots, loading: ratesLoading } = useRates()
+  const { flag } = useFeatureFlags()
+  const dateShortcutsEnabled = flag('DATE_SHORTCUTS')
 
   const [tab, setTab] = useState<Tab>('income')
   const [submitting, setSubmitting] = useState(false)
@@ -150,6 +159,30 @@ export default function LogPage() {
   const labelCls = 'font-label text-[10px] font-semibold uppercase tracking-[0.1rem] text-[var(--on-surface-variant)] mb-2 block'
   // Bare input inside squircle card (no border, transparent bg)
   const bareInput = 'bg-transparent w-full border-none p-0 focus:ring-0 focus:outline-none text-[var(--primary)] font-headline font-bold'
+
+  function DateShortcuts({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+    if (!dateShortcutsEnabled) return null
+    const today = todayStr()
+    const yesterday = yesterdayStr()
+    return (
+      <div className="flex gap-2 mb-2">
+        {[{ label: 'Today', val: today }, { label: 'Yesterday', val: yesterday }].map(({ label, val }) => (
+          <button
+            key={val}
+            type="button"
+            onClick={() => onChange(val)}
+            className="px-3 py-1 rounded-full font-label text-[10px] uppercase tracking-[0.06rem] transition-colors"
+            style={{
+              backgroundColor: value === val ? 'var(--primary)' : 'var(--surface-container-high)',
+              color: value === val ? 'white' : 'var(--on-surface-variant)',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[var(--surface)]">
@@ -270,6 +303,7 @@ export default function LogPage() {
               {/* Date */}
               <div className="bg-[var(--surface-container-low)] squircle p-5">
                 <label className={labelCls}>Date</label>
+                <DateShortcuts value={incomeDate} onChange={setIncomeDate} />
                 <input
                   type="date"
                   value={incomeDate}
@@ -463,6 +497,7 @@ export default function LogPage() {
               {/* Date */}
               <div className="bg-[var(--surface-container-low)] squircle p-5">
                 <label className={labelCls}>Date</label>
+                <DateShortcuts value={expenseDate} onChange={setExpenseDate} />
                 <input
                   type="date"
                   value={expenseDate}
@@ -641,6 +676,10 @@ export default function LogPage() {
                   )}
                   <div className="space-y-2">
                     <label className="font-label text-[0.65rem] uppercase tracking-widest text-[var(--on-surface-variant)] block">Date</label>
+                    <DateShortcuts
+                      value={tab === 'income' ? incomeDate : expenseDate}
+                      onChange={tab === 'income' ? setIncomeDate : setExpenseDate}
+                    />
                     <input
                       type="date"
                       value={tab === 'income' ? incomeDate : expenseDate}

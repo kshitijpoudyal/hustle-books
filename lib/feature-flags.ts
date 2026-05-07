@@ -30,6 +30,12 @@ export const FLAG_REGISTRY: FlagDefinition[] = [
     description: 'Income goal tracking on the Dashboard and Hustle Details pages. Includes progress cards, confetti, and milestone toasts.',
     releaseStage: FeatureReleaseStage.BETA,
   },
+  {
+    key: 'DATE_SHORTCUTS',
+    label: 'Date Shortcuts',
+    description: 'Today / Yesterday quick-pick buttons above the date field in the Log form. Reduces friction for the most common log dates.',
+    releaseStage: FeatureReleaseStage.BETA,
+  },
 ]
 
 export type FlagKey = (typeof FLAG_REGISTRY)[number]['key']
