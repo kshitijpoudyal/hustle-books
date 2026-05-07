@@ -188,8 +188,7 @@ export default function LoginPage() {
             </button>
           </p>
 
-          {/* Powered by KshitijStudio — hidden, re-enable when ready */}
-          {/* <p className="mt-6 text-center text-xs" style={{ color: 'var(--on-surface-variant)' }}>
+          <p className="mt-6 text-center text-xs" style={{ color: 'var(--on-surface-variant)' }}>
             Powered by{' '}
             <a
               href="https://www.kshitijstudio.com"
@@ -200,7 +199,7 @@ export default function LoginPage() {
             >
               KshitijStudio
             </a>
-          </p> */}
+          </p>
         </div>
 
       </div>
