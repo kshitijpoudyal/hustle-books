@@ -13,6 +13,7 @@ interface StatCardsProps {
   totalDepreciation: number
   loading: boolean
   periodLabel: string
+  onCardClick?: (key: string) => void
 }
 
 export default function StatCards({
@@ -25,6 +26,7 @@ export default function StatCards({
   totalDepreciation,
   loading,
   periodLabel,
+  onCardClick,
 }: StatCardsProps) {
   const profitPositive = netProfit >= 0
 
@@ -99,7 +101,11 @@ export default function StatCards({
   return (
     <div className={`grid grid-cols-2 ${lgColClass} gap-4 lg:gap-6`}>
       {cards.map(({ key, ...card }) => (
-        <StatCard key={key} {...card} loading={loading} />
+        <StatCard
+          key={key}
+          {...(onCardClick ? { ...card, href: undefined, onClick: () => onCardClick(key) } : card)}
+          loading={loading}
+        />
       ))}
     </div>
   )

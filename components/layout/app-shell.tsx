@@ -6,6 +6,7 @@ import { UserSettingsProvider } from '@/lib/context/user-settings-context'
 import { FeatureFlagsProvider } from '@/lib/context/feature-flags-context'
 import CalculatorFab from '@/components/calculator/calculator-fab'
 import InstallBanner from '@/components/shared/install-banner'
+import OnboardingController from '@/components/onboarding/onboarding-controller'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -21,6 +22,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
       {showNav && <CalculatorFab />}
       {showNav && <InstallBanner />}
+      {showNav && <OnboardingController />}
       </UserSettingsProvider>
     </FeatureFlagsProvider>
   )

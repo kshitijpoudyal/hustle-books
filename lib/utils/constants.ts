@@ -76,4 +76,13 @@ export const DEFAULT_RATE_SNAPSHOT = {
 
 export const IRS_MILEAGE_RATE_DEFAULT = 72.5
 
+export const EXPENSE_PRESETS: Record<string, number[]> = {
+  fuel:        [30, 50, 70],
+  fees:        [5,  10, 25],
+  supplies:    [15, 30, 60],
+  maintenance: [20, 40, 80],
+  phone:       [40, 65, 100],
+  other:       [10, 25, 50],
+}
+
 export const STALE_RATES_THRESHOLD_DAYS = 30

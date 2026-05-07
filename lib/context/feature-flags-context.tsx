@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { toast } from 'sonner'
 import {
   UserGroup,
   type FlagKey,
@@ -31,6 +32,8 @@ interface FeatureFlagsContextValue {
   keyToStage: Record<string, string>
   userGroup: UserGroup
   isInternal: boolean
+  /** True while the initial flag load is in progress */
+  flagsLoading: boolean
 }
 
 const FeatureFlagsContext = createContext<FeatureFlagsContextValue>({
@@ -41,6 +44,7 @@ const FeatureFlagsContext = createContext<FeatureFlagsContextValue>({
   keyToStage: {},
   userGroup: UserGroup.PUBLIC,
   isInternal: false,
+  flagsLoading: true,
 })
 
 export function FeatureFlagsProvider({ children }: { children: React.ReactNode }) {
@@ -48,6 +52,7 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
   const [visibleFlagKeys, setVisibleFlagKeys] = useState<Set<string>>(new Set())
   const [keyToStage, setKeyToStage] = useState<Record<string, string>>({})
   const [userGroup, setUserGroup] = useState<UserGroup>(UserGroup.PUBLIC)
+  const [flagsLoading, setFlagsLoading] = useState(true)
 
   const keyToIdRef = useRef<Record<string, string>>({})
   const userIdRef = useRef<string | null>(null)
@@ -67,7 +72,7 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
           .from('users')
           .select('user_group')
           .eq('id', userId)
-          .single()
+          .maybeSingle()
 
         if (error) {
           console.error('[FeatureFlags] Failed to fetch user group:', error.message)
@@ -86,12 +91,14 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
         setStored(resolved.stored)
       } finally {
         loadingRef.current = false
+        setFlagsLoading(false)
       }
     }
 
     // Initial load — may return null on mobile before auth is ready
     supabase.auth.getUser().then(({ data: { user } }: { data: { user: { id: string } | null } }) => {
       if (user) load(user.id)
+      else setFlagsLoading(false)
     })
 
     // Re-run when the session becomes available. Also retries if the initial
@@ -125,13 +132,15 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
 
       const userId = userIdRef.current
       if (userId) {
-        if (value) {
-          enableFlag(userId, key, keyToIdRef.current)
-            .then(r => { if (!r.ok) console.error('[FeatureFlags] enable error:', r.error) })
-        } else {
-          disableFlag(userId, key, keyToIdRef.current)
-            .then(r => { if (!r.ok) console.error('[FeatureFlags] disable error:', r.error) })
-        }
+        const op = value ? enableFlag : disableFlag
+        op(userId, key, keyToIdRef.current).then(r => {
+          if (!r.ok) {
+            console.error('[FeatureFlags] toggle error:', r.error)
+            toast.error(`Failed to save flag: ${r.error}`)
+            // Revert optimistic update
+            setStored(prev => ({ ...prev, [key]: !value }))
+          }
+        })
       }
 
       return next
@@ -141,7 +150,7 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
   const isInternal = userGroup === UserGroup.INTERNAL
 
   return (
-    <FeatureFlagsContext.Provider value={{ flag, setFlag, stored, visibleFlagKeys, keyToStage, userGroup, isInternal }}>
+    <FeatureFlagsContext.Provider value={{ flag, setFlag, stored, visibleFlagKeys, keyToStage, userGroup, isInternal, flagsLoading }}>
       {children}
     </FeatureFlagsContext.Provider>
   )

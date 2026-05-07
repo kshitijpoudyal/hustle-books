@@ -11,7 +11,7 @@ All new features are feature-flagged (BETA stage). Enable them in `/devpower`.
 | 1 | **Date Shortcuts** — Today / Yesterday pills above date inputs in Log form | `DATE_SHORTCUTS` | ✅ Done | 1 |
 | 2 | **Log Again** — Pre-fill form from last income entry; user just changes amount | `LOG_AGAIN` | ✅ Done | 2 |
 | 3 | **Mileage Preset Chips** — +5 / +10 / +15 / +25 tap chips below mileage input | `MILEAGE_PRESETS` | ✅ Done | 3 |
-| 4 | **Swipe Actions in History** — Swipe left on mobile row to reveal Edit / Delete | `SWIPE_ACTIONS` | ✅ Done | 4 |
+| 4 | **Swipe Actions in History** — Swipe left on mobile row to reveal Edit / Delete | `SWIPE_ACTIONS` | 🔧 Needs Improvement | 4 |
 | 5 | **Hustle Color Badges (Mobile)** — Colored dot next to hustle name in mobile history rows | `HUSTLE_COLOR_BADGES` | ✅ Done | 5 |
 | 6 | **No-Rates Nudge in Log** — Amber banner when no active rate snapshot exists | `RATES_NUDGE` | ✅ Done | 6 |
 
@@ -23,9 +23,9 @@ All new features are feature-flagged (BETA stage). Enable them in `/devpower`.
 
 | # | Feature | Flag Key | Status | Session |
 |---|---------|----------|--------|---------|
-| 7 | **Tax Reserve Card** — Dashboard card showing taxable income and suggested set-aside amount | `TAX_RESERVE_CARD` | 🔲 Todo | 7 |
-| 8 | **Stat Card Drill-Through** — Tap any dashboard stat to see a breakdown slide-up | `STAT_DRILL_THROUGH` | 🔲 Todo | 8 |
-| 9 | **Onboarding Wizard** — 3-step first-login guide: create hustle → set rates → log first entry | `ONBOARDING_WIZARD` | 🔲 Todo | 9 |
+| 7 | **Tax Reserve Card** — Dashboard card showing taxable income and suggested set-aside amount | `TAX_RESERVE_CARD` | 🔧 Needs Improvement | 7 |
+| 8 | **Stat Card Drill-Through** — Tap any dashboard stat to see a breakdown slide-up | `STAT_DRILL_THROUGH` | ✅ Done | 8 |
+| 9 | **Onboarding Wizard** — 3-step first-login guide: create hustle → set rates → log first entry | `ONBOARDING_WIZARD` | ✅ Done | 9 |
 
 ---
 
@@ -33,9 +33,9 @@ All new features are feature-flagged (BETA stage). Enable them in `/devpower`.
 
 | # | Feature | Flag Key | Status | Session |
 |---|---------|----------|--------|---------|
-| 10 | **Expense Presets** — Quick-add buttons for common expenses (fuel fill-up, phone bill) | `EXPENSE_PRESETS` | 🔲 Todo | 10 |
-| 11 | **Hustle Comparison** — Side-by-side profit / expense ratio for 2–3 selected hustles | `HUSTLE_COMPARISON` | 🔲 Todo | 11 |
-| 12 | **Earnings Heatmap** — Calendar heatmap showing highest-earning days of the week/month | `EARNINGS_HEATMAP` | 🔲 Todo | 12 |
+| 10 | **Expense Presets** — Quick-add buttons for common expenses (fuel fill-up, phone bill) | `EXPENSE_PRESETS` | ✅ Done | 10 |
+| 11 | **Hustle Comparison** — Side-by-side profit / expense ratio for 2–3 selected hustles | `HUSTLE_COMPARISON` | 🔧 Needs Improvement | 11 |
+| 12 | **Earnings Heatmap** — Calendar heatmap showing highest-earning days of the week/month | `EARNINGS_HEATMAP` | 🔧 Needs Improvement | 12 |
 
 ---
 

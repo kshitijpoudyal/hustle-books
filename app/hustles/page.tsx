@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Plus, TrendingUp } from 'lucide-react'
+import { Check, Plus, TrendingUp, X } from 'lucide-react'
 import { useHustles } from '@/lib/hooks/use-hustles'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils/formatters'
@@ -11,6 +11,7 @@ import { HustleIcon } from '@/lib/utils/hustle-icons'
 import type { HustleCategory } from '@/lib/utils/constants'
 import { toast } from 'sonner'
 import type { Hustle } from '@/lib/types'
+import { useFeatureFlags } from '@/lib/context/feature-flags-context'
 
 // ── Per-hustle profits ────────────────────────────────────────────────────────
 
@@ -284,6 +285,24 @@ export default function HustlesPage() {
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  const { flag } = useFeatureFlags()
+  const comparisonEnabled = flag('HUSTLE_COMPARISON')
+  const [compareMode, setCompareMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  function toggleCompare(id: string) {
+    setSelectedIds(prev =>
+      prev.includes(id)
+        ? prev.filter(x => x !== id)
+        : prev.length < 3 ? [...prev, id] : prev
+    )
+  }
+
+  function exitCompareMode() {
+    setCompareMode(false)
+    setSelectedIds([])
+  }
+
   const allIds = useMemo(() => hustles.map(h => h.id), [hustles])
   const { profits, loading: profitsLoading } = useAllTimeProfits(allIds)
 
@@ -323,8 +342,28 @@ export default function HustlesPage() {
       <div className="lg:hidden pb-40">
 
         <main className="px-6 pt-4 max-w-5xl mx-auto">
-          <header className="mb-10">
-            <h2 className="text-4xl font-black text-[var(--primary)] tracking-tight">Your Hustles</h2>
+          <header className="mb-10 flex items-start justify-between">
+            <div>
+              <h2 className="text-4xl font-black text-[var(--primary)] tracking-tight">Your Hustles</h2>
+              {compareMode && (
+                <p className="font-label text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
+                  Select 2–3 hustles
+                </p>
+              )}
+            </div>
+            {comparisonEnabled && hustles.length >= 2 && (
+              <button
+                onClick={() => compareMode ? exitCompareMode() : setCompareMode(true)}
+                className="mt-2 px-5 py-2 rounded-full font-label text-xs font-bold tracking-widest uppercase transition-all"
+                style={
+                  compareMode
+                    ? { backgroundColor: 'var(--primary)', color: 'white' }
+                    : { backgroundColor: 'var(--surface-container-highest)', color: 'var(--primary)' }
+                }
+              >
+                {compareMode ? 'Done' : 'Compare'}
+              </button>
+            )}
           </header>
 
           {loading ? (
@@ -351,15 +390,73 @@ export default function HustlesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
               {/* Left column */}
               <div className="flex flex-col gap-6">
-                {hustles.filter((_, i) => i % 2 === 0).map(h => (
-                  <MobileHustleCard key={h.id} hustle={h} income={getIncome(h.id)} />
-                ))}
+                {hustles.filter((_, i) => i % 2 === 0).map(h => {
+                  const isSelected = selectedIds.includes(h.id)
+                  const isMaxedOut = selectedIds.length >= 3 && !isSelected
+                  return (
+                    <div
+                      key={h.id}
+                      className="relative"
+                      style={{ opacity: compareMode && isMaxedOut ? 0.4 : 1 }}
+                    >
+                      <MobileHustleCard hustle={h} income={getIncome(h.id)} />
+                      {compareMode && (
+                        <div
+                          className="absolute inset-0 rounded-[inherit] cursor-pointer"
+                          style={{
+                            outline: isSelected ? `3px solid ${h.color}` : '3px solid rgba(255,255,255,0.3)',
+                            outlineOffset: '-3px',
+                            borderRadius: 'inherit',
+                          }}
+                          onClick={() => toggleCompare(h.id)}
+                        />
+                      )}
+                      {compareMode && isSelected && (
+                        <div
+                          className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-10 pointer-events-none"
+                          style={{ backgroundColor: h.color }}
+                        >
+                          <Check className="w-3 h-3 text-white" strokeWidth={2.5} />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
               {/* Right column — offset down */}
               <div className="flex flex-col gap-6 md:translate-y-10">
-                {hustles.filter((_, i) => i % 2 === 1).map(h => (
-                  <MobileHustleCard key={h.id} hustle={h} income={getIncome(h.id)} />
-                ))}
+                {hustles.filter((_, i) => i % 2 === 1).map(h => {
+                  const isSelected = selectedIds.includes(h.id)
+                  const isMaxedOut = selectedIds.length >= 3 && !isSelected
+                  return (
+                    <div
+                      key={h.id}
+                      className="relative"
+                      style={{ opacity: compareMode && isMaxedOut ? 0.4 : 1 }}
+                    >
+                      <MobileHustleCard hustle={h} income={getIncome(h.id)} />
+                      {compareMode && (
+                        <div
+                          className="absolute inset-0 rounded-[inherit] cursor-pointer"
+                          style={{
+                            outline: isSelected ? `3px solid ${h.color}` : '3px solid rgba(255,255,255,0.3)',
+                            outlineOffset: '-3px',
+                            borderRadius: 'inherit',
+                          }}
+                          onClick={() => toggleCompare(h.id)}
+                        />
+                      )}
+                      {compareMode && isSelected && (
+                        <div
+                          className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-10 pointer-events-none"
+                          style={{ backgroundColor: h.color }}
+                        >
+                          <Check className="w-3 h-3 text-white" strokeWidth={2.5} />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
                 {/* Ghost card */}
                 <button
                   onClick={() => setShowForm(true)}
@@ -401,11 +498,31 @@ export default function HustlesPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex gap-4">
+                  <div className="flex gap-6 items-end">
                     <div className="flex flex-col items-end">
                       <span className="font-label text-[10px] uppercase text-[var(--on-surface-variant)]">Hustles</span>
                       <span className="text-xl font-bold text-[var(--primary)]">{hustles.length}</span>
                     </div>
+                    {comparisonEnabled && hustles.length >= 2 && (
+                      <div className="flex flex-col items-end gap-1">
+                        <button
+                          onClick={() => compareMode ? exitCompareMode() : setCompareMode(true)}
+                          className="px-5 py-2 rounded-full font-label text-xs font-bold tracking-widest uppercase transition-all"
+                          style={
+                            compareMode
+                              ? { backgroundColor: 'var(--primary)', color: 'white' }
+                              : { backgroundColor: 'var(--surface-container-highest)', color: 'var(--primary)' }
+                          }
+                        >
+                          {compareMode ? 'Done' : 'Compare'}
+                        </button>
+                        {compareMode && (
+                          <span className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)]">
+                            Select 2–3 hustles
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div
@@ -435,9 +552,38 @@ export default function HustlesPage() {
               </div>
             ) : (
               <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {hustles.map(h => (
-                  <DesktopHustleCard key={h.id} hustle={h} income={getIncome(h.id)} />
-                ))}
+                {hustles.map(h => {
+                  const isSelected = selectedIds.includes(h.id)
+                  const isMaxedOut = selectedIds.length >= 3 && !isSelected
+                  return (
+                    <div
+                      key={h.id}
+                      className="relative"
+                      style={{ opacity: compareMode && isMaxedOut ? 0.4 : 1 }}
+                    >
+                      <DesktopHustleCard hustle={h} income={getIncome(h.id)} />
+                      {compareMode && (
+                        <div
+                          className="absolute inset-0 rounded-[inherit] cursor-pointer"
+                          style={{
+                            outline: isSelected ? `3px solid ${h.color}` : '3px solid rgba(255,255,255,0.3)',
+                            outlineOffset: '-3px',
+                            borderRadius: 'inherit',
+                          }}
+                          onClick={() => toggleCompare(h.id)}
+                        />
+                      )}
+                      {compareMode && isSelected && (
+                        <div
+                          className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-10 pointer-events-none"
+                          style={{ backgroundColor: h.color }}
+                        >
+                          <Check className="w-3 h-3 text-white" strokeWidth={2.5} />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
                 {/* Ghost card */}
                 <button
                   onClick={() => setShowForm(v => !v)}
@@ -460,6 +606,132 @@ export default function HustlesPage() {
           </div>
         </main>
       </div>
+
+      {/* ── Hustle Comparison Panel ── */}
+      {compareMode && selectedIds.length >= 2 && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-40 lg:left-[72px]"
+          style={{ boxShadow: '0 -24px 64px rgba(30,58,95,0.12)' }}
+        >
+          <div
+            className="rounded-t-[2rem] lg:rounded-[2rem] lg:mx-4 lg:mb-4 p-6"
+            style={{
+              backgroundColor: 'var(--surface-container-lowest)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            {/* Panel header */}
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <h3 className="font-headline font-bold text-[var(--primary)] text-base">Hustle Comparison</h3>
+                <span
+                  className="font-label text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-full"
+                  style={{ backgroundColor: 'var(--surface-container-high)', color: 'var(--on-surface-variant)' }}
+                >
+                  All Time
+                </span>
+              </div>
+              <button
+                onClick={exitCompareMode}
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-[var(--surface-container-high)]"
+                style={{ color: 'var(--on-surface-variant)' }}
+              >
+                <X className="w-4 h-4" strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Columns */}
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {selectedIds.map(id => {
+                const hustle = hustles.find(h => h.id === id)
+                if (!hustle) return null
+                const p = profits[id] ?? { income: 0, expenses: 0 }
+                const income = p.income
+                const expenses = p.expenses
+                const profit = income - expenses
+                const costRatio = income > 0 ? Math.round((expenses / income) * 100) : null
+
+                return (
+                  <div
+                    key={id}
+                    className="flex-1 min-w-[140px] flex flex-col gap-3"
+                  >
+                    {/* Color dot + name */}
+                    <div className="flex flex-col items-center gap-2 pb-3" style={{ borderBottom: 'none' }}>
+                      <div
+                        className="w-10 h-10 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: hustle.color }}
+                      />
+                      <p className="font-headline font-bold text-sm text-[var(--primary)] truncate text-center w-full">
+                        {hustle.name}
+                      </p>
+                    </div>
+
+                    {/* Background shift divider */}
+                    <div className="rounded-2xl p-3 space-y-3" style={{ backgroundColor: 'var(--surface-container-low)' }}>
+                      {/* Income */}
+                      <div>
+                        <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] mb-0.5">
+                          Income
+                        </p>
+                        <p className="font-label font-bold text-sm" style={{ color: 'var(--secondary)' }}>
+                          {formatCurrency(income)}
+                        </p>
+                      </div>
+
+                      {/* Expenses */}
+                      <div>
+                        <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] mb-0.5">
+                          Expenses
+                        </p>
+                        <p className="font-label font-bold text-sm" style={{ color: 'var(--expense)' }}>
+                          {formatCurrency(expenses)}
+                        </p>
+                      </div>
+
+                      {/* Cost Ratio */}
+                      <div>
+                        <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] mb-0.5">
+                          Cost Ratio
+                        </p>
+                        <p className="font-label font-bold text-sm text-[var(--on-surface)]">
+                          {costRatio === null ? '—' : `${costRatio}%`}
+                        </p>
+                        {costRatio !== null && (
+                          <div className="mt-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface-container-high)' }}>
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${Math.min(costRatio, 100)}%`,
+                                background: 'linear-gradient(90deg, rgba(var(--expense-rgb, 180,50,50),0.6), rgba(var(--expense-rgb, 180,50,50),0.3))',
+                                backgroundColor: 'var(--expense)',
+                                opacity: 0.6,
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Net Profit */}
+                      <div>
+                        <p className="font-label text-[9px] uppercase tracking-widest text-[var(--on-surface-variant)] mb-0.5">
+                          Net Profit
+                        </p>
+                        <p
+                          className="font-label font-bold text-sm"
+                          style={{ color: profit >= 0 ? 'var(--secondary)' : 'var(--expense)' }}
+                        >
+                          {formatCurrency(profit)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── New Hustle Modal (shared mobile + desktop) ── */}
       {showForm && (

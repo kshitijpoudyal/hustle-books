@@ -41,6 +41,8 @@ export interface StatCardProps {
   loading?: boolean
   /** If provided, wraps the entire card in a Next.js Link */
   href?: string
+  /** If provided (and no href), wraps card in a button — used for drill-through */
+  onClick?: () => void
 }
 
 // ── Skeleton ─────────────────────────────────────────────────────────────────
@@ -114,6 +116,7 @@ export default function StatCard({
   className,
   loading,
   href,
+  onClick,
 }: StatCardProps) {
   if (loading) {
     return (
@@ -139,7 +142,7 @@ export default function StatCard({
 
   const cardClass = twMerge(
     'bg-[var(--surface-container-low)] squircle p-5 lg:p-6 flex flex-col justify-between hover:shadow-xl transition-all group',
-    href && 'active:scale-[0.98] cursor-pointer',
+    (href || onClick) && 'active:scale-[0.98] cursor-pointer',
     mobileSize,
     desktopSize,
     colSpan,
@@ -217,6 +220,19 @@ export default function StatCard({
       <Link href={href} className={cardClass} style={cardStyle}>
         {content}
       </Link>
+    )
+  }
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cardClass}
+        style={{ ...cardStyle, textAlign: 'left' }}
+      >
+        {content}
+      </button>
     )
   }
 

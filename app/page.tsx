@@ -6,6 +6,10 @@ import type { Period } from '@/lib/hooks/use-dashboard'
 import StatCards from '@/components/dashboard/stat-cards'
 import RecentActivity from '@/components/dashboard/recent-activity'
 import RevenueTrendCard from '@/components/dashboard/revenue-trend-card'
+import TaxReserveCard from '@/components/dashboard/tax-reserve-card'
+import DrillThroughPanel from '@/components/dashboard/drill-through-panel'
+import type { DrillKey } from '@/components/dashboard/drill-through-panel'
+import EarningsHeatmap from '@/components/dashboard/earnings-heatmap'
 import Link from 'next/link'
 import { TrendingUp, Receipt } from 'lucide-react'
 import GoalsList from '@/components/goals/goals-list'
@@ -16,22 +20,32 @@ const PERIOD_SHORT: Record<Period, string> = { today: 'Today', week: 'Week', mon
 export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>('month')
 
+  const [drillKey, setDrillKey] = useState<DrillKey | null>(null)
+
   const {
     totalIncome,
     totalExpenses,
     totalCogs,
     netProfit,
     taxSetAside,
+    taxableIncome,
     totalMileage,
     totalDepreciation,
     weeklyBars,
     hustleStats,
     recentActivity,
+    activeSnapshot,
     loading,
   } = useDashboard(period)
 
   const { flag } = useFeatureFlags()
   const goalsEnabled = flag('GOAL_MILESTONES')
+  const taxReserveEnabled = flag('TAX_RESERVE_CARD')
+  const statDrillEnabled = flag('STAT_DRILL_THROUGH')
+  const heatmapEnabled = flag('EARNINGS_HEATMAP')
+
+  const taxRate = activeSnapshot?.tax_rate ?? 25
+  const nonTaxableIncome = totalIncome - taxableIncome
 
   const topHustle = hustleStats.length > 0
     ? hustleStats.reduce((best, h) => h.income > best.income ? h : best)
@@ -78,7 +92,20 @@ export default function DashboardPage() {
             totalDepreciation={totalDepreciation}
             loading={loading}
             periodLabel={periodLabel}
+            onCardClick={statDrillEnabled ? (key) => setDrillKey(key as DrillKey) : undefined}
           />
+
+          {/* Tax Reserve Card */}
+          {taxReserveEnabled && (
+            <TaxReserveCard
+              taxableIncome={taxableIncome}
+              nonTaxableIncome={nonTaxableIncome}
+              taxSetAside={taxSetAside}
+              taxRate={taxRate}
+              periodLabel={periodLabel}
+              loading={loading}
+            />
+          )}
 
           {/* Revenue Trend */}
           <RevenueTrendCard data={weeklyBars} loading={loading} variant="mobile" period={period} />
@@ -98,6 +125,9 @@ export default function DashboardPage() {
             </div>
             <RecentActivity entries={recentActivity} loading={loading} />
           </section>
+
+          {/* Earnings Heatmap */}
+          {heatmapEnabled && <EarningsHeatmap />}
 
           {/* Global Goals */}
           {goalsEnabled && <GoalsList globalOnly title="Income Goals" />}
@@ -143,7 +173,20 @@ export default function DashboardPage() {
             totalDepreciation={totalDepreciation}
             loading={loading}
             periodLabel={periodLabel}
+            onCardClick={statDrillEnabled ? (key) => setDrillKey(key as DrillKey) : undefined}
           />
+          {taxReserveEnabled && (
+            <div className="mt-6">
+              <TaxReserveCard
+                taxableIncome={taxableIncome}
+                nonTaxableIncome={nonTaxableIncome}
+                taxSetAside={taxSetAside}
+                taxRate={taxRate}
+                periodLabel={periodLabel}
+                loading={loading}
+              />
+            </div>
+          )}
         </section>
 
         {/* Bento: 8-col chart + 4-col observations */}
@@ -244,6 +287,13 @@ export default function DashboardPage() {
           )}
         </section>
 
+        {/* Earnings Heatmap */}
+        {heatmapEnabled && (
+          <section className="mt-8">
+            <EarningsHeatmap />
+          </section>
+        )}
+
         {/* Global Goals */}
         {goalsEnabled && (
           <section className="mt-8">
@@ -251,6 +301,23 @@ export default function DashboardPage() {
           </section>
         )}
       </div>
+
+      {/* Drill-through panel — rendered outside layout divs so it overlays both */}
+      {statDrillEnabled && (
+        <DrillThroughPanel
+          drillKey={drillKey}
+          onClose={() => setDrillKey(null)}
+          periodLabel={periodLabel}
+          totalIncome={totalIncome}
+          totalExpenses={totalExpenses}
+          totalCogs={totalCogs}
+          netProfit={netProfit}
+          taxSetAside={taxSetAside}
+          taxableIncome={taxableIncome}
+          taxRate={taxRate}
+          hustleStats={hustleStats}
+        />
+      )}
     </div>
   )
 }

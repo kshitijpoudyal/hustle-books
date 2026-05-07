@@ -26,6 +26,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   include_tax_in_profit: true,
   show_calculator_fab: true,
   goal_animations: true,
+  onboarding_complete: false,
   vehicle: {
     year: null,
     make_model: null,

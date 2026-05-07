@@ -13,6 +13,8 @@ export interface Profile {
     show_calculator_fab: boolean
     /** Whether to show milestone animations (confetti, toasts, glow) on goal progress */
     goal_animations: boolean
+    /** Set to true once the user completes or dismisses the onboarding wizard */
+    onboarding_complete?: boolean
     vehicle: {
       year: number | null
       make_model: string | null

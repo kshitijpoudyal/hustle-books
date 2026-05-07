@@ -14,7 +14,7 @@ import { useRates } from '@/lib/hooks/use-rates'
 import { resolveSnapshot } from '@/lib/utils/rate-resolver'
 import { calcFuelCost, calcDepreciationCost, calcNetMargin, calcMileagePreviewTotal } from '@/lib/utils/calculations'
 import { formatCurrency, formatGasPrice, formatMpg } from '@/lib/utils/formatters'
-import { EXPENSE_CATEGORIES, IRS_MILEAGE_RATE_DEFAULT } from '@/lib/utils/constants'
+import { EXPENSE_CATEGORIES, EXPENSE_PRESETS, IRS_MILEAGE_RATE_DEFAULT } from '@/lib/utils/constants'
 import { useFeatureFlags } from '@/lib/context/feature-flags-context'
 import type { ExpenseEntry, IncomeEntry } from '@/lib/types'
 
@@ -49,6 +49,7 @@ export default function LogPage() {
   const logAgainEnabled = flag('LOG_AGAIN')
   const mileagePresetsEnabled = flag('MILEAGE_PRESETS')
   const ratesNudgeEnabled = flag('RATES_NUDGE')
+  const expensePresetsEnabled = flag('EXPENSE_PRESETS')
 
   const [tab, setTab] = useState<Tab>('income')
   const [submitting, setSubmitting] = useState(false)
@@ -573,6 +574,21 @@ export default function LogPage() {
                     </p>
                   </div>
                 )}
+                {expensePresetsEnabled && (
+                  <div className="flex gap-2 mt-3 flex-wrap">
+                    {(EXPENSE_PRESETS[expenseCategory] ?? []).map(amt => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setExpenseAmount(String(amt))}
+                        className="px-3 py-1.5 rounded-full font-label text-[10px] uppercase tracking-[0.06rem] transition-colors"
+                        style={{ backgroundColor: 'var(--surface-container-high)', color: 'var(--on-surface-variant)' }}
+                      >
+                        ${amt}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Date */}
@@ -790,6 +806,21 @@ export default function LogPage() {
                           <p className="font-label text-[9px] uppercase tracking-[0.04rem] leading-relaxed" style={{ color: 'var(--tertiary-container)' }}>
                             You already tracked mileage on this date. Logging a fuel expense too may duplicate your fuel cost — mileage is for IRS records, not profit.
                           </p>
+                        </div>
+                      )}
+                      {expensePresetsEnabled && (
+                        <div className="flex gap-2 flex-wrap">
+                          {(EXPENSE_PRESETS[expenseCategory] ?? []).map(amt => (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => setExpenseAmount(String(amt))}
+                              className="px-3 py-1.5 rounded-full font-label text-[10px] uppercase tracking-[0.06rem] transition-colors"
+                              style={{ backgroundColor: 'var(--surface-container-high)', color: 'var(--on-surface-variant)' }}
+                            >
+                              ${amt}
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>
