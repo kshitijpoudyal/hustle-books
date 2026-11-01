@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { formatCurrency, formatTaxRate } from '@/lib/utils/formatters'
 
@@ -332,6 +333,14 @@ export default function DrillThroughPanel({
   taxRate,
   hustleStats,
 }: DrillThroughPanelProps) {
+  // Escape closes the panel (wayfinding: always a way out)
+  useEffect(() => {
+    if (!drillKey) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [drillKey, onClose])
+
   if (!drillKey) return null
 
   const nonTaxableIncome = totalIncome - taxableIncome
@@ -386,7 +395,7 @@ export default function DrillThroughPanel({
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 z-50"
+        className="fixed inset-0 z-50 animate-in fade-in duration-200"
         style={{ background: 'color-mix(in srgb, var(--primary) 20%, transparent)', backdropFilter: 'blur(4px)' }}
         onClick={onClose}
         aria-hidden
@@ -394,8 +403,14 @@ export default function DrillThroughPanel({
 
       {/* Mobile: slide-up sheet */}
       <div
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-[2rem] overflow-y-auto max-h-[80vh] p-6 transition-transform duration-300"
-        style={{ background: 'var(--surface-container-lowest)' }}
+        role="dialog"
+        aria-modal="true"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-[2rem] overflow-y-auto overscroll-contain max-h-[80vh] p-6 animate-in slide-in-from-bottom duration-300 ease-out"
+        style={{
+          background: 'var(--surface-container-lowest)',
+          paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+          boxShadow: '0 -12px 32px rgba(30, 58, 95, 0.06)',
+        }}
       >
         <PanelHeader
           drillKey={drillKey}
@@ -404,14 +419,15 @@ export default function DrillThroughPanel({
           mobile
         />
         {renderContent()}
-        {/* Bottom safe area padding */}
-        <div className="h-6" />
       </div>
 
       {/* Desktop: centered modal */}
-      <div className="hidden lg:flex fixed inset-0 z-50 items-center justify-center">
+      {/* Outer layer passes clicks through to the overlay so clicking outside closes */}
+      <div className="hidden lg:flex fixed inset-0 z-50 items-center justify-center pointer-events-none">
         <div
-          className="squircle max-w-lg w-full mx-4 p-6 overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+          className="pointer-events-auto squircle max-w-lg w-full mx-4 p-6 overflow-y-auto animate-in fade-in zoom-in-95 duration-200 ease-out"
           style={{
             background: 'var(--surface-container-lowest)',
             maxHeight: '80vh',

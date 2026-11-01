@@ -464,56 +464,6 @@ export default function HustleDetailPage({ params }: { params: Promise<{ id: str
       ══════════════════════════════════════════════════════════════ */}
       <div className="hidden lg:block">
 
-        {/* Side Nav */}
-        <nav
-          className="h-screen w-64 fixed left-0 top-0 flex flex-col py-8 z-40"
-          style={{ backgroundColor: 'var(--surface-container-low)' }}
-        >
-          <div className="px-8 mb-8">
-            <h1 className="font-black text-[var(--primary)] text-2xl tracking-tighter">LEGER_01</h1>
-            <p
-              className="font-label text-[10px] font-medium uppercase tracking-[0.1rem] mt-1"
-              style={{ color: 'rgba(2,36,72,0.6)' }}
-            >
-              Hustle Status: {hustle.is_active ? 'Active' : 'Archived'}
-            </p>
-          </div>
-
-          <div className="flex flex-col flex-grow">
-            {[
-              { href: '/', label: 'DASHBOARD' },
-              { href: '/hustles', label: 'HUSTLES', active: true },
-              { href: '/history', label: 'HISTORY' },
-              { href: '/rates', label: 'RATES' },
-              { href: '/settings', label: 'SETTINGS' },
-            ].map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="pl-6 py-4 flex items-center gap-4 hover:bg-[var(--surface-container)] transition-all"
-                style={{
-                  color: item.active ? 'var(--primary)' : 'rgba(2,36,72,0.4)',
-                  borderRight: item.active ? '4px solid var(--primary)' : '4px solid transparent',
-                }}
-              >
-                <span className="font-label text-xs font-semibold tracking-[0.05rem]">{item.label}</span>
-              </Link>
-            ))}
-          </div>
-
-          <div className="px-6 mt-auto">
-            <Link
-              href="/log"
-              className="block w-full py-4 rounded-full text-center text-white font-label text-xs font-bold tracking-[0.1rem] active:scale-95 transition-all"
-              style={{
-                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
-                boxShadow: '0 32px 64px -12px rgba(2,36,72,0.08)',
-              }}
-            >
-              NEW_ENTRY
-            </Link>
-          </div>
-        </nav>
 
         {/* Main Content */}
         <main className="p-12 min-h-screen" style={{ backgroundColor: 'var(--surface)' }}>

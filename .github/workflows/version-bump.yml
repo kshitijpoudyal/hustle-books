@@ -1,0 +1,42 @@
+name: Version bump
+
+# Every merge (push) to main bumps the patch version, commits it back, and tags it.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    # Don't re-trigger on the bot's own release commit
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          VERSION=$(npm version patch --no-git-tag-version)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore(release): ${{ steps.bump.outputs.version }} [skip ci]"
+          git tag "${{ steps.bump.outputs.version }}"
+          git push origin HEAD:main --follow-tags

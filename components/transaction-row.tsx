@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowUp, ArrowDown, RefreshCw, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
@@ -8,6 +8,7 @@ import { formatCurrency, formatDate, formatMileage } from '@/lib/utils/formatter
 import { calcNetMargin } from '@/lib/utils/calculations'
 import { EXPENSE_CATEGORIES } from '@/lib/utils/constants'
 import { useFeatureFlags } from '@/lib/context/feature-flags-context'
+import { animateSpring, projectMomentum, rubberband } from '@/lib/utils/spring'
 import type { TransactionEntry, IncomeEntry, ExpenseEntry } from '@/lib/types'
 
 export type TransactionRowVariant = 'simple' | 'detailed' | 'hustle'
@@ -51,9 +52,6 @@ export function MobileTransactionRow({ entry, variant = 'detailed', onDelete }: 
   const hustleColorBadgesEnabled = flag('HUSTLE_COLOR_BADGES')
   const router = useRouter()
 
-  const [swiped, setSwiped] = useState(false)
-  const touchStartX = useRef(0)
-  const touchStartY = useRef(0)
 
   const label = entry.description
     ?? (isIncome ? 'Income' : EXPENSE_CATEGORIES.find(c => c.value === exp?.category)?.label ?? 'Expense')
@@ -65,7 +63,6 @@ export function MobileTransactionRow({ entry, variant = 'detailed', onDelete }: 
       : (EXPENSE_CATEGORIES.find(c => c.value === exp?.category)?.label ?? 'Expense')
 
   const meta = getMeta(inc, variant)
-  const ACTION_WIDTH = 120
 
   const rowContent = (
     <>
@@ -103,7 +100,7 @@ export function MobileTransactionRow({ entry, variant = 'detailed', onDelete }: 
       <div className="flex-shrink-0 text-right">
         <p
           className="font-headline font-bold text-sm tabular-nums"
-          style={{ color: isIncome ? 'var(--secondary)' : 'var(--primary)' }}
+          style={{ color: isIncome ? 'var(--secondary)' : 'var(--expense)' }}
         >
           {isIncome ? '+' : '−'}{formatCurrency(Number(entry.amount), 'USD', true)}
         </p>
@@ -121,7 +118,7 @@ export function MobileTransactionRow({ entry, variant = 'detailed', onDelete }: 
     return (
       <Link
         href={`/log/${entry.id}`}
-        className="squircle bg-[var(--surface-container-lowest)] p-4 flex items-center gap-3 active:scale-[0.98] transition-transform shadow-[0_2px_12px_rgba(2,36,72,0.06)]"
+        className="squircle bg-[var(--surface-container-lowest)] p-4 flex items-center gap-3 active:scale-[0.98] transition-transform duration-100 shadow-[0_2px_12px_rgba(30,58,95,0.06)]"
       >
         {rowContent}
       </Link>
@@ -129,51 +126,149 @@ export function MobileTransactionRow({ entry, variant = 'detailed', onDelete }: 
   }
 
   return (
-    <div
-      className="relative overflow-hidden shadow-[0_2px_12px_rgba(2,36,72,0.06)]"
-      style={{ borderRadius: '1.25rem' }}
+    <SwipeReveal
+      width={ACTION_WIDTH}
+      onTap={() => router.push(`/log/${entry.id}`)}
+      actions={(
+        <>
+          <Link
+            href={`/log/${entry.id}`}
+            tabIndex={-1}
+            className="flex-1 flex flex-col items-center justify-center gap-1 active:brightness-90"
+            style={{ backgroundColor: 'var(--primary)', color: 'var(--surface)' }}
+          >
+            <Pencil className="w-4 h-4" strokeWidth={1.5} />
+            <span className="font-label text-[8px] uppercase tracking-widest opacity-80">Edit</span>
+          </Link>
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={onDelete}
+            className="flex-1 flex flex-col items-center justify-center gap-1 active:brightness-90"
+            style={{ backgroundColor: 'var(--expense)', color: 'var(--surface)' }}
+          >
+            <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+            <span className="font-label text-[8px] uppercase tracking-widest opacity-80">Delete</span>
+          </button>
+        </>
+      )}
     >
-      {/* Action buttons revealed on swipe */}
-      <div className="absolute inset-y-0 right-0 flex" style={{ width: ACTION_WIDTH }}>
-        <Link
-          href={`/log/${entry.id}`}
-          className="flex-1 flex flex-col items-center justify-center gap-1"
-          style={{ backgroundColor: 'var(--primary)' }}
-        >
-          <Pencil className="w-4 h-4 text-white" strokeWidth={1.5} />
-          <span className="font-label text-[8px] uppercase tracking-widest text-white/80">Edit</span>
-        </Link>
-        <button
-          onClick={() => { setSwiped(false); onDelete?.() }}
-          className="flex-1 flex flex-col items-center justify-center gap-1"
-          style={{ backgroundColor: 'var(--expense)' }}
-        >
-          <Trash2 className="w-4 h-4 text-white" strokeWidth={1.5} />
-          <span className="font-label text-[8px] uppercase tracking-widest text-white/80">Delete</span>
-        </button>
-      </div>
+      {rowContent}
+    </SwipeReveal>
+  )
+}
 
-      {/* Sliding main content */}
+// ── Swipe gesture ──────────────────────────────────────────────────────────
+
+const ACTION_WIDTH = 120
+const SLOP = 10 // px of movement before committing to a direction
+
+type GestureMode = 'idle' | 'pending' | 'drag' | 'scroll'
+
+/**
+ * Swipe-left to reveal actions. Tracks the finger 1:1, rubber-bands past the
+ * edges, projects release momentum to pick open/closed, and settles on an
+ * interruptible spring that inherits the finger's velocity.
+ */
+function SwipeReveal({ width, onTap, actions, children }: {
+  width: number
+  onTap: () => void
+  actions: React.ReactNode
+  children: React.ReactNode
+}) {
+  const contentRef = useRef<HTMLDivElement>(null)
+  const actionsRef = useRef<HTMLDivElement>(null)
+  const x = useRef(0) // live on-screen offset (the "presentation" value)
+  const cancel = useRef<(() => void) | null>(null)
+  const g = useRef({ id: -1, startX: 0, startY: 0, origin: 0, mode: 'idle' as GestureMode, samples: [] as { x: number; t: number }[] })
+
+  useEffect(() => () => cancel.current?.(), [])
+
+  function render(value: number) {
+    x.current = value
+    if (contentRef.current) contentRef.current.style.transform = `translate3d(${value}px,0,0)`
+    if (actionsRef.current) actionsRef.current.style.opacity = String(Math.min(1, Math.max(0, -value / width)))
+  }
+
+  function settle(target: number, velocity = 0) {
+    cancel.current?.()
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { render(target); return }
+    // Bounce only when a flick carried momentum; otherwise critically damped.
+    const dampingRatio = Math.abs(velocity) > 400 ? 0.8 : 1
+    cancel.current = animateSpring(x.current, target, render, { dampingRatio, response: 0.3, velocity })
+  }
+
+  function onPointerDown(e: React.PointerEvent) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    cancel.current?.() // interrupt any in-flight spring; continue from where it is now
+    g.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, origin: x.current, mode: 'pending', samples: [{ x: e.clientX, t: e.timeStamp }] }
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    const s = g.current
+    if (e.pointerId !== s.id || s.mode === 'idle' || s.mode === 'scroll') return
+    const dx = e.clientX - s.startX
+    const dy = e.clientY - s.startY
+    if (s.mode === 'pending') {
+      if (Math.abs(dx) < SLOP && Math.abs(dy) < SLOP) return
+      if (Math.abs(dy) > Math.abs(dx)) { s.mode = 'scroll'; return }
+      s.mode = 'drag'
+      e.currentTarget.setPointerCapture(e.pointerId)
+    }
+    s.samples.push({ x: e.clientX, t: e.timeStamp })
+    if (s.samples.length > 5) s.samples.shift()
+    const raw = s.origin + dx
+    render(raw > 0 ? rubberband(raw, width)
+      : raw < -width ? -width + rubberband(raw + width, width)
+      : raw)
+  }
+
+  function onPointerUp(e: React.PointerEvent) {
+    const s = g.current
+    if (e.pointerId !== s.id) return
+    const mode = s.mode
+    s.mode = 'idle'
+    if (mode === 'pending') {
+      // A tap: close if open, otherwise open the entry
+      if (x.current < -1) settle(0)
+      else onTap()
+      return
+    }
+    if (mode !== 'drag') return
+    const first = s.samples[0]
+    const last = s.samples[s.samples.length - 1]
+    const dt = (last.t - first.t) / 1000
+    const velocity = dt > 0 ? (last.x - first.x) / dt : 0
+    // Pick the snap point from where the flick is *going*, not where it was released
+    const target = x.current + projectMomentum(velocity, 0.99) < -width / 2 ? -width : 0
+    if (target !== 0 && x.current > -width / 2) navigator.vibrate?.(8)
+    settle(target, velocity)
+  }
+
+  function onPointerCancel(e: React.PointerEvent) {
+    if (e.pointerId !== g.current.id) return
+    g.current.mode = 'idle'
+    settle(x.current < -width / 2 ? -width : 0)
+  }
+
+  return (
+    <div className="relative overflow-hidden squircle shadow-[0_2px_12px_rgba(30,58,95,0.06)]">
+      {/* Actions fade in with drag progress; tapping any of them closes the row */}
+      <div ref={actionsRef} className="absolute inset-y-0 right-0 flex opacity-0" style={{ width }} onClick={() => settle(0)}>
+        {actions}
+      </div>
       <div
-        className="squircle bg-[var(--surface-container-lowest)] p-4 flex items-center gap-3 relative z-10 transition-transform duration-200"
-        style={{ transform: `translateX(${swiped ? -ACTION_WIDTH : 0}px)` }}
-        onTouchStart={e => {
-          touchStartX.current = e.touches[0].clientX
-          touchStartY.current = e.touches[0].clientY
-        }}
-        onTouchEnd={e => {
-          const dx = e.changedTouches[0].clientX - touchStartX.current
-          const dy = e.changedTouches[0].clientY - touchStartY.current
-          if (Math.abs(dx) < 8 && Math.abs(dy) < 8) {
-            if (swiped) setSwiped(false)
-            else router.push(`/log/${entry.id}`)
-          } else if (Math.abs(dx) > Math.abs(dy) * 0.7) {
-            if (dx < -30) setSwiped(true)
-            else if (dx > 20) setSwiped(false)
-          }
-        }}
+        ref={contentRef}
+        role="link"
+        tabIndex={0}
+        className="squircle bg-[var(--surface-container-lowest)] p-4 flex items-center gap-3 relative z-10 select-none will-change-transform touch-pan-y"
+        onKeyDown={e => { if (e.key === 'Enter') onTap() }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
       >
-        {rowContent}
+        {children}
       </div>
     </div>
   )

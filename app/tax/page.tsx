@@ -29,7 +29,7 @@ function YearDropdown({ value, options, onChange }: { value: string; options: Ye
     <div className="relative">
       <button
         onClick={() => setOpen(prev => !prev)}
-        className="flex items-center gap-3 px-6 py-3 rounded-full font-label text-sm uppercase tracking-widest bg-[var(--primary)] text-white"
+        className="flex items-center gap-3 px-6 py-3 rounded-full font-label text-sm uppercase tracking-widest bg-[var(--primary)] text-[var(--on-primary)]"
       >
         <span>{selected?.label ?? value}</span>
         <ChevronDown

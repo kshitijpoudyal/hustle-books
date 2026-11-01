@@ -610,11 +610,11 @@ export default function HustlesPage() {
       {/* ── Hustle Comparison Panel ── */}
       {compareMode && selectedIds.length >= 2 && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-40 lg:left-[72px]"
+          className="fixed left-0 right-0 z-40 bottom-[calc(4.5rem+max(1.25rem,env(safe-area-inset-bottom)))] lg:bottom-0 lg:left-64"
           style={{ boxShadow: '0 -24px 64px rgba(30,58,95,0.12)' }}
         >
           <div
-            className="rounded-t-[2rem] lg:rounded-[2rem] lg:mx-4 lg:mb-4 p-6"
+            className="rounded-[2rem] mx-3 lg:mx-4 lg:mb-4 p-6 max-h-[60vh] overflow-y-auto"
             style={{
               backgroundColor: 'var(--surface-container-lowest)',
               backdropFilter: 'blur(8px)',
@@ -703,7 +703,7 @@ export default function HustlesPage() {
                               className="h-full rounded-full"
                               style={{
                                 width: `${Math.min(costRatio, 100)}%`,
-                                background: 'linear-gradient(90deg, rgba(var(--expense-rgb, 180,50,50),0.6), rgba(var(--expense-rgb, 180,50,50),0.3))',
+                                background: 'linear-gradient(90deg, color-mix(in srgb, var(--expense) 60%, transparent), color-mix(in srgb, var(--expense) 30%, transparent))',
                                 backgroundColor: 'var(--expense)',
                                 opacity: 0.6,
                               }}

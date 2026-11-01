@@ -96,7 +96,7 @@ function CustomDropdown({ value, options, onChange, defaultValue = '', fullWidth
           fullWidth ? 'w-full justify-between' : ''
         } ${
           isActive
-            ? 'bg-[var(--primary)] text-white'
+            ? 'bg-[var(--primary)] text-[var(--on-primary)]'
             : 'bg-[var(--surface-container-high)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-highest)]'
         }`}
       >
@@ -349,7 +349,7 @@ export default function HistoryPage() {
                         onClick={() => handleTabChange(t)}
                         className={`flex-1 py-2 rounded-full font-label text-[10px] uppercase tracking-[0.08rem] transition-colors ${
                           tab === t
-                            ? 'bg-[var(--primary)] text-white font-semibold'
+                            ? 'bg-[var(--primary)] text-[var(--on-primary)] font-semibold'
                             : 'text-[var(--on-surface-variant)] opacity-60'
                         }`}
                       >
@@ -371,7 +371,7 @@ export default function HistoryPage() {
                         onClick={() => { setDateRange(r); setMobileVisible(MOBILE_PAGE_STEP) }}
                         className={`px-3.5 py-1.5 rounded-full font-label text-[10px] uppercase tracking-[0.06rem] transition-colors ${
                           dateRange === r
-                            ? 'bg-[var(--primary)] text-white'
+                            ? 'bg-[var(--primary)] text-[var(--on-primary)]'
                             : 'bg-[var(--surface-container-high)] text-[var(--on-surface-variant)]'
                         }`}
                       >
@@ -523,7 +523,7 @@ export default function HistoryPage() {
                   onClick={() => handleTabChange(t)}
                   className={`px-4 py-1.5 rounded-full font-label text-[10px] uppercase tracking-[0.08rem] transition-colors ${
                     tab === t
-                      ? 'bg-[var(--primary)] text-white font-semibold'
+                      ? 'bg-[var(--primary)] text-[var(--on-primary)] font-semibold'
                       : 'text-[var(--on-surface-variant)] opacity-60 hover:opacity-100'
                   }`}
                 >
@@ -619,7 +619,7 @@ export default function HistoryPage() {
                         onClick={() => setDesktopPage(p)}
                         className={`w-8 h-8 rounded-full font-label text-[10px] transition-colors ${
                           p === safePage
-                            ? 'bg-[var(--primary)] text-white'
+                            ? 'bg-[var(--primary)] text-[var(--on-primary)]'
                             : 'bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]'
                         }`}
                       >

@@ -72,7 +72,7 @@ export default function DashboardPage() {
                 onClick={() => setPeriod(p)}
                 className={`flex-1 py-2 rounded-full font-label text-[10px] uppercase tracking-widest transition-colors ${
                   period === p
-                    ? 'bg-[var(--primary)] text-white font-semibold'
+                    ? 'bg-[var(--primary)] text-[var(--on-primary)] font-semibold'
                     : 'text-[var(--on-surface-variant)] opacity-60'
                 }`}
               >
@@ -151,7 +151,7 @@ export default function DashboardPage() {
                 onClick={() => setPeriod(p)}
                 className={`px-5 py-2 rounded-full font-label text-[10px] uppercase tracking-widest transition-colors ${
                   period === p
-                    ? 'bg-[var(--primary)] text-white font-semibold'
+                    ? 'bg-[var(--primary)] text-[var(--on-primary)] font-semibold'
                     : 'text-[var(--on-surface-variant)] opacity-60 hover:opacity-100'
                 }`}
               >
